@@ -56,7 +56,33 @@ export default function BookingConfirmScreen() {
         ]
       );
     } catch (error: any) {
-      Alert.alert('❌ Booking Failed', error.message || 'Failed to create booking. Please try again.');
+      // Check if it's a conflict error (room already occupied)
+      const isConflict = error.status === 409 ||
+                        error.response?.status === 409 ||
+                        error.message?.includes('conflicts with an existing booking');
+
+      if (isConflict) {
+        Alert.alert(
+          '🚫 Room Unavailable',
+          'This time slot is already occupied by another booking. Please choose a different time or room.',
+          [
+            {
+              text: 'Choose Different Time',
+              onPress: () => navigation.goBack(),
+            },
+            {
+              text: 'Browse Other Rooms',
+              onPress: () => navigation.navigate('Home'),
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          '❌ Booking Failed',
+          error.message || 'Failed to create booking. Please try again.',
+          [{ text: 'OK' }]
+        );
+      }
     }
   };
 

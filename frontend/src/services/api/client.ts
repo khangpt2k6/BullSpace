@@ -35,7 +35,12 @@ apiClient.interceptors.response.use(
       // Server responded with error status
       const message = error.response.data?.message || error.response.data?.error || 'An error occurred';
       console.error('API Error:', message);
-      throw new Error(message);
+
+      // Create error with message and preserve response for status code checking
+      const apiError: any = new Error(message);
+      apiError.response = error.response;
+      apiError.status = error.response.status;
+      throw apiError;
     } else if (error.request) {
       // Request made but no response
       console.error('Network Error:', error.message);
