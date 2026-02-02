@@ -13,7 +13,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Mock user for development - matches backend seed data
   const [user, setUser] = useState<User | null>({
-    _id: '123',
+    _id: '507f1f77bcf86cd799439011',
     name: 'Test Student',
     email: 'student@usf.edu',
     role: 'student',
