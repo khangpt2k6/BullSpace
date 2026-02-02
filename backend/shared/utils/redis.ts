@@ -1,11 +1,11 @@
-const Redis = require('ioredis');
+import Redis from 'ioredis';
+import { RoomUpdateEvent } from '../types';
 
-// Initialize Redis client for Upstash
-const redis = new Redis(process.env.REDIS_URL, {
+const redis = new Redis(process.env.REDIS_URL as string, {
   tls: {
     rejectUnauthorized: false // Required for Upstash
   },
-  retryStrategy: (times) => {
+  retryStrategy: (times: number): number | void => {
     const delay = Math.min(times * 50, 2000);
     return delay;
   }
@@ -15,21 +15,26 @@ redis.on('connect', () => {
   console.log('✅ Redis connected successfully');
 });
 
-redis.on('error', (err) => {
+redis.on('error', (err: Error) => {
   console.error('❌ Redis connection error:', err.message);
 });
 
 // Helper functions for room booking
 const RoomCache = {
   // Check if room is available
-  async isAvailable(roomId, timeSlot) {
+  async isAvailable(roomId: string, timeSlot: string): Promise<boolean> {
     const key = `room:${roomId}:slot:${timeSlot}`;
     const status = await redis.get(key);
     return status === null || status === 'AVAILABLE';
   },
 
   // Hold a room (with TTL)
-  async holdRoom(roomId, timeSlot, userId, ttlSeconds = 600) {
+  async holdRoom(
+    roomId: string,
+    timeSlot: string,
+    userId: string,
+    ttlSeconds: number = 600
+  ): Promise<boolean> {
     const key = `room:${roomId}:slot:${timeSlot}`;
     const holdKey = `room:${roomId}:hold:${userId}`;
 
@@ -44,7 +49,11 @@ const RoomCache = {
   },
 
   // Confirm booking
-  async confirmBooking(roomId, timeSlot, userId) {
+  async confirmBooking(
+    roomId: string,
+    timeSlot: string,
+    userId: string
+  ): Promise<boolean> {
     const key = `room:${roomId}:slot:${timeSlot}`;
     const holdKey = `room:${roomId}:hold:${userId}`;
 
@@ -53,18 +62,24 @@ const RoomCache = {
     await redis.del(holdKey);
 
     // Publish event for real-time updates
-    await redis.publish('room:updates', JSON.stringify({
+    const event: RoomUpdateEvent = {
       roomId,
       timeSlot,
       status: 'BOOKED',
       userId
-    }));
+    };
+
+    await redis.publish('room:updates', JSON.stringify(event));
 
     return true;
   },
 
   // Release room (cancel booking/hold)
-  async releaseRoom(roomId, timeSlot, userId) {
+  async releaseRoom(
+    roomId: string,
+    timeSlot: string,
+    userId: string
+  ): Promise<boolean> {
     const key = `room:${roomId}:slot:${timeSlot}`;
     const holdKey = `room:${roomId}:hold:${userId}`;
 
@@ -72,21 +87,23 @@ const RoomCache = {
     await redis.del(holdKey);
 
     // Publish event
-    await redis.publish('room:updates', JSON.stringify({
+    const event: RoomUpdateEvent = {
       roomId,
       timeSlot,
       status: 'AVAILABLE'
-    }));
+    };
+
+    await redis.publish('room:updates', JSON.stringify(event));
 
     return true;
   },
 
   // Get room status
-  async getRoomStatus(roomId, timeSlot) {
+  async getRoomStatus(roomId: string, timeSlot: string): Promise<string> {
     const key = `room:${roomId}:slot:${timeSlot}`;
     const status = await redis.get(key);
     return status || 'AVAILABLE';
   }
 };
 
-module.exports = { redis, RoomCache };
+export { redis, RoomCache };

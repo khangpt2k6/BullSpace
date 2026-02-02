@@ -1,14 +1,15 @@
-const amqp = require('amqplib');
+import amqp, { Connection, Channel, ConsumeMessage } from 'amqplib';
+import { BookingQueueMessage } from '../types';
 
-let connection = null;
-let channel = null;
+let connection: Connection | null = null;
+let channel: Channel | null = null;
 
 const QUEUE_NAME = 'booking_requests';
 
-// Connect to RabbitMQ
-async function connectRabbitMQ() {
+// connect to RabbitMQ
+async function connectRabbitMQ(): Promise<{ connection: Connection; channel: Channel }> {
   try {
-    connection = await amqp.connect(process.env.RABBITMQ_URL);
+    connection = await amqp.connect(process.env.RABBITMQ_URL as string);
     channel = await connection.createChannel();
 
     // Assert queue exists
@@ -19,7 +20,7 @@ async function connectRabbitMQ() {
     console.log('✅ RabbitMQ connected successfully');
 
     // Handle connection errors
-    connection.on('error', (err) => {
+    connection.on('error', (err: Error) => {
       console.error('❌ RabbitMQ connection error:', err.message);
     });
 
@@ -29,13 +30,14 @@ async function connectRabbitMQ() {
 
     return { connection, channel };
   } catch (error) {
-    console.error('❌ Failed to connect to RabbitMQ:', error.message);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('❌ Failed to connect to RabbitMQ:', errorMessage);
     process.exit(1);
   }
 }
 
-// Publish booking request to queue
-async function publishBookingRequest(bookingData) {
+// publish booking request to queue
+async function publishBookingRequest(bookingData: BookingQueueMessage): Promise<void> {
   if (!channel) {
     throw new Error('RabbitMQ channel not initialized');
   }
@@ -43,55 +45,58 @@ async function publishBookingRequest(bookingData) {
   const message = JSON.stringify(bookingData);
 
   channel.sendToQueue(QUEUE_NAME, Buffer.from(message), {
-    persistent: true // Message survives broker restart
+    persistent: true
   });
 
   console.log(`📤 Published booking request: ${bookingData.roomId}`);
 }
 
-// Consume booking requests (used by booking-service)
-async function consumeBookingRequests(callback) {
+// consume booking requests from queue
+async function consumeBookingRequests(
+  callback: (data: BookingQueueMessage) => Promise<void>
+): Promise<void> {
   if (!channel) {
     throw new Error('RabbitMQ channel not initialized');
   }
 
-  // Set prefetch to 1 - process one message at a time
   await channel.prefetch(1);
 
   console.log('👂 Waiting for booking requests...');
 
-  channel.consume(QUEUE_NAME, async (msg) => {
+  channel.consume(QUEUE_NAME, async (msg: ConsumeMessage | null) => {
     if (msg) {
       try {
-        const bookingData = JSON.parse(msg.content.toString());
+        const bookingData: BookingQueueMessage = JSON.parse(msg.content.toString());
         console.log(`📥 Received booking request: ${bookingData.roomId}`);
 
         // Process the booking
         await callback(bookingData);
 
         // Acknowledge message (remove from queue)
-        channel.ack(msg);
+        channel!.ack(msg);
       } catch (error) {
-        console.error('❌ Error processing booking:', error.message);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error('❌ Error processing booking:', errorMessage);
         // Reject message and requeue
-        channel.nack(msg, false, true);
+        channel!.nack(msg, false, true);
       }
     }
   });
 }
 
-// Close connection gracefully
-async function closeRabbitMQ() {
+// close RabbitMQ connection
+async function closeRabbitMQ(): Promise<void> {
   try {
     if (channel) await channel.close();
     if (connection) await connection.close();
     console.log('✅ RabbitMQ connection closed');
   } catch (error) {
-    console.error('❌ Error closing RabbitMQ:', error.message);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('❌ Error closing RabbitMQ:', errorMessage);
   }
 }
 
-module.exports = {
+export {
   connectRabbitMQ,
   publishBookingRequest,
   consumeBookingRequests,
