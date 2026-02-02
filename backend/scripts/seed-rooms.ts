@@ -1,7 +1,7 @@
-require('dotenv').config({ path: '../api-gateway/.env' });
+require('dotenv').config({ path: '.env' });
 const mongoose = require('mongoose');
-const Room = require('../shared/models/Room');
-const User = require('../shared/models/User');
+const Room = require('../shared/models/Room').default;
+const User = require('../shared/models/User').default;
 
 // configure usf colors
 const USF_GREEN = '#006747';
@@ -97,7 +97,8 @@ async function seedDatabase() {
 
     process.exit(0);
   } catch (error) {
-    console.error('❌ Seed error:', error.message);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('❌ Seed error:', errorMessage);
     process.exit(1);
   }
 }
