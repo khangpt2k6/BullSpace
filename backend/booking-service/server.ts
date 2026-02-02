@@ -1,13 +1,14 @@
-require('dotenv').config();
-const connectDB = require('../shared/config/database');
-const { connectRabbitMQ, consumeBookingRequests } = require('../shared/utils/rabbitmq');
-const { RoomCache } = require('../shared/utils/redis');
-const Booking = require('../shared/models/Booking');
+import 'dotenv/config';
+import connectDB from '../shared/config/database';
+import { connectRabbitMQ, consumeBookingRequests } from '../shared/utils/rabbitmq';
+import { RoomCache } from '../shared/utils/redis';
+import Booking from '../shared/models/Booking';
+import { BookingQueueMessage } from '../shared/types';
 
 console.log('🔄 Starting Booking Service...');
 
 // Connect to databases
-const init = async () => {
+const init = async (): Promise<void> => {
   try {
     // Connect to MongoDB
     await connectDB();
@@ -20,13 +21,14 @@ const init = async () => {
 
     console.log('✅ Booking Service is ready and listening for requests');
   } catch (error) {
-    console.error('❌ Failed to start Booking Service:', error.message);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('❌ Failed to start Booking Service:', errorMessage);
     process.exit(1);
   }
 };
 
 // CORE FUNCTION: Process booking request
-async function processBooking(bookingData) {
+async function processBooking(bookingData: BookingQueueMessage): Promise<{ success: boolean; message: string; holdExpiresIn?: number }> {
   const { bookingId, userId, roomId, timeSlot } = bookingData;
 
   console.log(`\n🔄 Processing booking: ${bookingId}`);
@@ -53,7 +55,7 @@ async function processBooking(bookingData) {
     }
 
     // Step 2: Try to HOLD the room (ATOMIC OPERATION - SETNX)
-    const holdTTL = parseInt(process.env.BOOKING_HOLD_TTL) || 600; // 10 minutes default
+    const holdTTL = parseInt(process.env.BOOKING_HOLD_TTL || '600'); // 10 minutes default
     const held = await RoomCache.holdRoom(roomId, timeSlot, userId, holdTTL);
 
     if (!held) {
@@ -85,7 +87,8 @@ async function processBooking(bookingData) {
     };
 
   } catch (error) {
-    console.error(`❌ Error processing booking ${bookingId}:`, error.message);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`❌ Error processing booking ${bookingId}:`, errorMessage);
 
     // Update booking to EXPIRED on error
     await Booking.findByIdAndUpdate(bookingId, {
