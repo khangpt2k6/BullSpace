@@ -4,6 +4,11 @@ import cors from 'cors';
 import connectDB from '../shared/config/database';
 import { connectRabbitMQ } from '../shared/utils/rabbitmq';
 
+// Import models to register them with Mongoose
+import '../shared/models/User';
+import '../shared/models/Room';
+import '../shared/models/Booking';
+
 const app: Express = express();
 const PORT = process.env.PORT || 3000;
 

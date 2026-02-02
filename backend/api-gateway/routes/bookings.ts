@@ -1,6 +1,7 @@
 import express, { Request, Response, Router } from 'express';
 import Booking from '../../shared/models/Booking';
 import Room from '../../shared/models/Room';
+import User from '../../shared/models/User';
 import { publishBookingRequest } from '../../shared/utils/rabbitmq';
 import { RoomCache } from '../../shared/utils/redis';
 import { CreateBookingRequest, BookingFilterQuery } from '../../shared/types';

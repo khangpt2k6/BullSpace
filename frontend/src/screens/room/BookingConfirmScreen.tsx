@@ -36,18 +36,27 @@ export default function BookingConfirmScreen() {
         endTime,
       });
 
+      // Success! Show confirmation and navigate to bookings
       Alert.alert(
-        'Booking Created!',
-        'Your booking has been created. Please confirm within 10 minutes.',
+        '✅ Booking Created!',
+        'Your booking has been created successfully! Please confirm it within 10 minutes to secure your room.',
         [
           {
-            text: 'OK',
+            text: 'View My Bookings',
+            onPress: () => {
+              // Navigate to Bookings tab
+              navigation.getParent()?.navigate('BookingsTab');
+            },
+          },
+          {
+            text: 'Browse More Rooms',
+            style: 'cancel',
             onPress: () => navigation.navigate('Home'),
           },
         ]
       );
     } catch (error: any) {
-      Alert.alert('Booking Failed', error.message || 'Failed to create booking');
+      Alert.alert('❌ Booking Failed', error.message || 'Failed to create booking. Please try again.');
     }
   };
 
