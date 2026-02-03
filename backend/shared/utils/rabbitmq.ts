@@ -1,40 +1,44 @@
 import * as amqp from 'amqplib';
 import { BookingQueueMessage } from '../types';
 
-let connection: amqp.Connection | null = null;
-let channel: amqp.Channel | null = null;
+let connection: any = null;
+let channel: any = null;
 
 const QUEUE_NAME = 'booking_requests';
 const EMAIL_QUEUE_NAME = 'email_notifications';
 
 // connect to RabbitMQ
-async function connectRabbitMQ(): Promise<{ connection: amqp.Connection; channel: amqp.Channel }> {
+async function connectRabbitMQ(): Promise<{ connection: any; channel: any }> {
   try {
-    connection = await amqp.connect(process.env.RABBITMQ_URL as string);
-    channel = await connection.createChannel();
+    const conn = await amqp.connect(process.env.RABBITMQ_URL as string);
+    const ch = await conn.createConfirmChannel();
 
     // Assert queue exists
-    await channel.assertQueue(QUEUE_NAME, {
+    await ch.assertQueue(QUEUE_NAME, {
       durable: true // Queue survives broker restart
     });
 
     // Assert email notification queue
-    await channel.assertQueue(EMAIL_QUEUE_NAME, {
+    await ch.assertQueue(EMAIL_QUEUE_NAME, {
       durable: true
     });
 
     console.log('✅ RabbitMQ connected successfully');
 
     // Handle connection errors
-    connection.on('error', (err: Error) => {
+    conn.on('error', (err: Error) => {
       console.error('❌ RabbitMQ connection error:', err.message);
     });
 
-    connection.on('close', () => {
+    conn.on('close', () => {
       console.warn('⚠️ RabbitMQ connection closed');
     });
 
-    return { connection, channel };
+    // Store in module-level variables
+    connection = conn;
+    channel = ch;
+
+    return { connection: conn, channel: ch };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('❌ Failed to connect to RabbitMQ:', errorMessage);
