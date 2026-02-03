@@ -5,7 +5,6 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { BookingsStackParamList } from '../../types/navigation';
 import { useBookings } from '../../hooks/api/useBookings';
-import { useAuth } from '../../contexts/AuthContext';
 import { Booking } from '../../types/models';
 import { USF_GREEN, STATUS_PENDING, STATUS_CONFIRMED, STATUS_CANCELLED, STATUS_EXPIRED } from '../../theme/colors';
 import { format } from 'date-fns';
@@ -14,7 +13,6 @@ type MyBookingsScreenNavigationProp = StackNavigationProp<BookingsStackParamList
 
 export default function MyBookingsScreen() {
   const navigation = useNavigation<MyBookingsScreenNavigationProp>();
-  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'active' | 'past'>('active');
 
   // Fetch all bookings for authenticated user (not filtered by status)
@@ -24,14 +22,14 @@ export default function MyBookingsScreen() {
   const now = new Date();
   const filteredBookings = (data?.bookings || []).filter((booking) => {
     const endTime = new Date(booking.endTime);
-    const isPast = endTime < now;
+    const hasEnded = endTime < now;
 
     if (activeTab === 'active') {
-      // Active tab: bookings that haven't ended yet and are PENDING or CONFIRMED
-      return !isPast && (booking.status === 'PENDING' || booking.status === 'CONFIRMED');
+      // Active tab: bookings that haven't ended yet and are not CANCELLED
+      return !hasEnded && booking.status !== 'CANCELLED';
     } else {
-      // Past tab: bookings that have ended OR are CANCELLED/EXPIRED
-      return isPast || booking.status === 'CANCELLED' || booking.status === 'EXPIRED';
+      // Past tab: bookings that have ended OR are CANCELLED
+      return hasEnded || booking.status === 'CANCELLED';
     }
   });
 
@@ -53,6 +51,14 @@ export default function MyBookingsScreen() {
   const renderBookingCard = ({ item }: { item: Booking }) => {
     const startDate = new Date(item.startTime);
     const endDate = new Date(item.endTime);
+    const now = new Date();
+
+    // Determine the actual display status
+    // If booking has ended and status is still CONFIRMED or PENDING, show as EXPIRED
+    const hasEnded = endDate < now;
+    const displayStatus = (hasEnded && (item.status === 'CONFIRMED' || item.status === 'PENDING'))
+      ? 'EXPIRED'
+      : item.status;
 
     // Handle both populated and non-populated roomId
     const roomId = typeof item.roomId === 'string'
@@ -73,11 +79,11 @@ export default function MyBookingsScreen() {
               mode="flat"
               style={[
                 styles.statusChip,
-                { backgroundColor: getStatusColor(item.status) }
+                { backgroundColor: getStatusColor(displayStatus) }
               ]}
               textStyle={{ color: '#FFFFFF' }}
             >
-              {item.status}
+              {displayStatus}
             </Chip>
           </View>
 
@@ -90,10 +96,18 @@ export default function MyBookingsScreen() {
             </Text>
           </View>
 
-          {item.status === 'PENDING' && (
+          {item.status === 'PENDING' && !hasEnded && (
             <View style={styles.warningBox}>
               <Text variant="bodySmall" style={styles.warningText}>
                 ⏱️ Confirm within 10 minutes or booking will expire
+              </Text>
+            </View>
+          )}
+
+          {displayStatus === 'EXPIRED' && (
+            <View style={[styles.warningBox, { backgroundColor: '#FFEBEE' }]}>
+              <Text variant="bodySmall" style={[styles.warningText, { color: '#C62828' }]}>
+                ⏰ This booking has ended
               </Text>
             </View>
           )}

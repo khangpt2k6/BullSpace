@@ -107,10 +107,19 @@ export default function BookingDetailsScreen() {
 
   const startDate = new Date(booking.startTime);
   const endDate = new Date(booking.endTime);
+  const now = new Date();
   const duration = Math.round((endDate.getTime() - startDate.getTime()) / (60 * 1000));
 
-  const canConfirm = booking.status === 'PENDING';
-  const canCancel = booking.status === 'PENDING' || booking.status === 'CONFIRMED';
+  // Check if booking has ended
+  const hasEnded = endDate < now;
+
+  // Determine the actual display status
+  const displayStatus = (hasEnded && (booking.status === 'CONFIRMED' || booking.status === 'PENDING'))
+    ? 'EXPIRED'
+    : booking.status;
+
+  const canConfirm = booking.status === 'PENDING' && !hasEnded;
+  const canCancel = (booking.status === 'PENDING' || booking.status === 'CONFIRMED') && !hasEnded;
 
   return (
     <View style={styles.container}>
@@ -125,11 +134,11 @@ export default function BookingDetailsScreen() {
               mode="flat"
               style={[
                 styles.statusChip,
-                { backgroundColor: getStatusColor(booking.status) }
+                { backgroundColor: getStatusColor(displayStatus) }
               ]}
               textStyle={{ color: '#FFFFFF' }}
             >
-              {booking.status}
+              {displayStatus}
             </Chip>
           </View>
 
@@ -182,10 +191,18 @@ export default function BookingDetailsScreen() {
             )}
           </View>
 
-          {booking.status === 'PENDING' && (
+          {booking.status === 'PENDING' && !hasEnded && (
             <View style={styles.warningBox}>
               <Text variant="bodyMedium" style={styles.warningText}>
                 ⏱️ This booking will expire in 10 minutes unless confirmed
+              </Text>
+            </View>
+          )}
+
+          {displayStatus === 'EXPIRED' && (
+            <View style={[styles.warningBox, { backgroundColor: '#FFEBEE' }]}>
+              <Text variant="bodyMedium" style={[styles.warningText, { color: '#C62828' }]}>
+                ⏰ This booking has ended
               </Text>
             </View>
           )}
