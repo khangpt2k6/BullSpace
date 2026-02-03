@@ -70,21 +70,21 @@ export default function SearchFiltersModal({
     onDismiss();
   };
 
-  const onDateChange = (event: any, selectedDate?: Date) => {
+  const onDateChange = (_event: any, selectedDate?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
     if (selectedDate) {
       setDate(selectedDate);
     }
   };
 
-  const onStartTimeChange = (event: any, selectedTime?: Date) => {
+  const onStartTimeChange = (_event: any, selectedTime?: Date) => {
     setShowStartTimePicker(Platform.OS === 'ios');
     if (selectedTime) {
       setStartTime(selectedTime);
     }
   };
 
-  const onEndTimeChange = (event: any, selectedTime?: Date) => {
+  const onEndTimeChange = (_event: any, selectedTime?: Date) => {
     setShowEndTimePicker(Platform.OS === 'ios');
     if (selectedTime) {
       setEndTime(selectedTime);
@@ -113,22 +113,46 @@ export default function SearchFiltersModal({
             <Text variant="labelLarge" style={styles.label}>
               Date
             </Text>
-            <Button
-              mode="outlined"
-              onPress={() => setShowDatePicker(true)}
-              style={styles.pickerButton}
-              icon="calendar"
-            >
-              {format(date, 'EEEE, MMMM d, yyyy')}
-            </Button>
-            {showDatePicker && (
-              <DateTimePicker
-                value={date}
-                mode="date"
-                display="default"
-                onChange={onDateChange}
-                minimumDate={new Date()}
+            {Platform.OS === 'web' ? (
+              <input
+                type="date"
+                value={format(date, 'yyyy-MM-dd')}
+                min={format(new Date(), 'yyyy-MM-dd')}
+                onChange={(e) => {
+                  const newDate = new Date(e.target.value);
+                  if (!isNaN(newDate.getTime())) {
+                    setDate(newDate);
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: 12,
+                  fontSize: 16,
+                  borderRadius: 4,
+                  border: '1px solid #ccc',
+                  fontFamily: 'system-ui',
+                }}
               />
+            ) : (
+              <>
+                <Button
+                  mode="outlined"
+                  onPress={() => setShowDatePicker(true)}
+                  style={styles.pickerButton}
+                  icon="calendar"
+                >
+                  {format(date, 'EEEE, MMMM d, yyyy')}
+                </Button>
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={date}
+                    mode="date"
+                    display="default"
+                    onChange={onDateChange}
+                    minimumDate={new Date()}
+                  />
+                )}
+              </>
             )}
           </View>
 
@@ -137,21 +161,44 @@ export default function SearchFiltersModal({
             <Text variant="labelLarge" style={styles.label}>
               Start Time
             </Text>
-            <Button
-              mode="outlined"
-              onPress={() => setShowStartTimePicker(true)}
-              style={styles.pickerButton}
-              icon="clock-outline"
-            >
-              {format(startTime, 'h:mm a')}
-            </Button>
-            {showStartTimePicker && (
-              <DateTimePicker
-                value={startTime}
-                mode="time"
-                display="default"
-                onChange={onStartTimeChange}
+            {Platform.OS === 'web' ? (
+              <input
+                type="time"
+                value={format(startTime, 'HH:mm')}
+                onChange={(e) => {
+                  const [hours, minutes] = e.target.value.split(':');
+                  const newTime = new Date(startTime);
+                  newTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                  setStartTime(newTime);
+                }}
+                style={{
+                  width: '100%',
+                  padding: 12,
+                  fontSize: 16,
+                  borderRadius: 4,
+                  border: '1px solid #ccc',
+                  fontFamily: 'system-ui',
+                }}
               />
+            ) : (
+              <>
+                <Button
+                  mode="outlined"
+                  onPress={() => setShowStartTimePicker(true)}
+                  style={styles.pickerButton}
+                  icon="clock-outline"
+                >
+                  {format(startTime, 'h:mm a')}
+                </Button>
+                {showStartTimePicker && (
+                  <DateTimePicker
+                    value={startTime}
+                    mode="time"
+                    display="default"
+                    onChange={onStartTimeChange}
+                  />
+                )}
+              </>
             )}
           </View>
 
@@ -160,21 +207,44 @@ export default function SearchFiltersModal({
             <Text variant="labelLarge" style={styles.label}>
               End Time
             </Text>
-            <Button
-              mode="outlined"
-              onPress={() => setShowEndTimePicker(true)}
-              style={styles.pickerButton}
-              icon="clock-outline"
-            >
-              {format(endTime, 'h:mm a')}
-            </Button>
-            {showEndTimePicker && (
-              <DateTimePicker
-                value={endTime}
-                mode="time"
-                display="default"
-                onChange={onEndTimeChange}
+            {Platform.OS === 'web' ? (
+              <input
+                type="time"
+                value={format(endTime, 'HH:mm')}
+                onChange={(e) => {
+                  const [hours, minutes] = e.target.value.split(':');
+                  const newTime = new Date(endTime);
+                  newTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                  setEndTime(newTime);
+                }}
+                style={{
+                  width: '100%',
+                  padding: 12,
+                  fontSize: 16,
+                  borderRadius: 4,
+                  border: '1px solid #ccc',
+                  fontFamily: 'system-ui',
+                }}
               />
+            ) : (
+              <>
+                <Button
+                  mode="outlined"
+                  onPress={() => setShowEndTimePicker(true)}
+                  style={styles.pickerButton}
+                  icon="clock-outline"
+                >
+                  {format(endTime, 'h:mm a')}
+                </Button>
+                {showEndTimePicker && (
+                  <DateTimePicker
+                    value={endTime}
+                    mode="time"
+                    display="default"
+                    onChange={onEndTimeChange}
+                  />
+                )}
+              </>
             )}
           </View>
 
