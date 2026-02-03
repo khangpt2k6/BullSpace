@@ -65,28 +65,28 @@ export default function BookingDetailsScreen() {
     }
   };
 
-  const handleCancel = () => {
-    Alert.alert(
-      'Cancel Booking',
-      'Are you sure you want to cancel this booking?',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Yes, Cancel',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await cancelBooking.mutateAsync(bookingId);
-              Alert.alert('Cancelled', 'Booking cancelled successfully', [
-                { text: 'OK', onPress: () => navigation.goBack() }
-              ]);
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to cancel booking');
-            }
-          },
-        },
-      ]
-    );
+  const handleCancel = async () => {
+    console.log('Cancel button clicked!');
+
+    // Use native confirm for web compatibility
+    const confirmed = window.confirm('Are you sure you want to cancel this booking?');
+
+    if (!confirmed) {
+      console.log('User cancelled the action');
+      return;
+    }
+
+    console.log('User confirmed, calling API...');
+    try {
+      await cancelBooking.mutateAsync(bookingId);
+      console.log('Booking cancelled successfully!');
+      Alert.alert('✅ Cancelled', 'Booking cancelled successfully', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
+    } catch (error: any) {
+      console.error('Error cancelling booking:', error);
+      Alert.alert('❌ Error', error.message || 'Failed to cancel booking');
+    }
   };
 
   if (bookingLoading) {
@@ -113,10 +113,8 @@ export default function BookingDetailsScreen() {
   const canCancel = booking.status === 'PENDING' || booking.status === 'CONFIRMED';
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-    >
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollView}>
       <Card style={styles.card}>
         <Card.Content>
           <View style={styles.header}>
@@ -221,7 +219,8 @@ export default function BookingDetailsScreen() {
           </Button>
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -229,6 +228,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FAFAFA',
+  },
+  scrollView: {
+    flex: 1,
   },
   scrollContent: {
     paddingBottom: 100, // Extra padding to ensure button isn't covered by bottom nav
