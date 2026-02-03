@@ -27,6 +27,7 @@ export default function AuthScreen() {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [pendingVerification, setPendingVerification] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
 
@@ -96,7 +97,21 @@ export default function AuthScreen() {
       await setActiveSignUp({ session: completeSignUp.createdSessionId });
     } catch (err: any) {
       console.error('Verification error:', err);
-      setError(err.errors?.[0]?.message || 'Verification failed. Please check your code.');
+
+      // Check if email is already verified
+      const errorMessage = err.errors?.[0]?.longMessage || err.errors?.[0]?.message || '';
+      if (errorMessage.toLowerCase().includes('already been verified')) {
+        setSuccessMessage('✅ Your email is already verified! Redirecting to login...');
+        // Auto-redirect to login after 2 seconds
+        setTimeout(() => {
+          setPendingVerification(false);
+          setIsLogin(true);
+          setSuccessMessage('');
+          setVerificationCode('');
+        }, 2000);
+      } else {
+        setError(err.errors?.[0]?.message || 'Verification failed. Please check your code.');
+      }
     } finally {
       setLoading(false);
     }
@@ -177,6 +192,10 @@ export default function AuthScreen() {
               <Text style={styles.errorText}>{error}</Text>
             ) : null}
 
+            {successMessage ? (
+              <Text style={styles.successText}>{successMessage}</Text>
+            ) : null}
+
             {/* Email Verification Form */}
             {pendingVerification ? (
               <>
@@ -213,6 +232,7 @@ export default function AuthScreen() {
                     setPendingVerification(false);
                     setVerificationCode('');
                     setError('');
+                    setSuccessMessage('');
                   }}
                   disabled={loading}
                   style={styles.switchButton}
@@ -314,6 +334,7 @@ export default function AuthScreen() {
               onPress={() => {
                 setIsLogin(!isLogin);
                 setError('');
+                setSuccessMessage('');
               }}
               disabled={loading}
               style={styles.switchButton}
@@ -366,6 +387,12 @@ const styles = StyleSheet.create({
     color: '#D32F2F',
     marginBottom: 12,
     textAlign: 'center',
+  },
+  successText: {
+    color: '#2E7D32',
+    marginBottom: 12,
+    textAlign: 'center',
+    fontWeight: '600',
   },
   verificationText: {
     marginBottom: 16,
