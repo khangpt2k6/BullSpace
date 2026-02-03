@@ -17,8 +17,8 @@ export default function MyBookingsScreen() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'active' | 'past'>('active');
 
-  // Fetch all bookings (not filtered by status)
-  const { data, isLoading, refetch, isRefetching } = useBookings(user?._id || '');
+  // Fetch all bookings for authenticated user (not filtered by status)
+  const { data, isLoading, refetch, isRefetching } = useBookings();
 
   // Filter bookings based on whether they're actually past or not
   const now = new Date();

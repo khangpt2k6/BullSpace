@@ -8,15 +8,17 @@ import {
 import { BookingFilters } from '../../types/models';
 
 export const bookingsApi = {
-  // Get all bookings for a user
-  getBookings: async (userId: string, filters?: BookingFilters): Promise<BookingsResponse> => {
-    const params = new URLSearchParams({ userId });
+  // Get all bookings for authenticated user
+  getBookings: async (filters?: BookingFilters): Promise<BookingsResponse> => {
+    const params = new URLSearchParams();
 
     if (filters?.status) {
       filters.status.forEach(s => params.append('status', s));
     }
 
-    return apiClient.get<BookingsResponse>(`/api/bookings?${params.toString()}`);
+    const queryString = params.toString();
+    const url = queryString ? `/api/bookings?${queryString}` : '/api/bookings';
+    return apiClient.get<BookingsResponse>(url);
   },
 
   // Get single booking by ID

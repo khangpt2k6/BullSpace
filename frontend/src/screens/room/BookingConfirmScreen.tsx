@@ -29,8 +29,8 @@ export default function BookingConfirmScreen() {
     }
 
     try {
+      // userId is automatically taken from auth token by backend
       await createBooking.mutateAsync({
-        userId: user._id,
         roomId,
         startTime,
         endTime,

@@ -56,7 +56,7 @@ export interface CreateBookingResponse {
 
 // Request types
 export interface CreateBookingRequest {
-  userId: string;
+  // userId is automatically taken from auth token by backend
   roomId: string;
   startTime: string;
   endTime: string;

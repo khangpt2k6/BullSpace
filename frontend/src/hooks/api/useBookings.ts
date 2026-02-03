@@ -8,15 +8,13 @@ import {
 } from '../../types/api';
 import { BookingFilters } from '../../types/models';
 
-// Get all bookings for a user
+// Get all bookings for authenticated user
 export const useBookings = (
-  userId: string,
   filters?: BookingFilters
 ): UseQueryResult<BookingsResponse> => {
   return useQuery({
-    queryKey: ['bookings', userId, filters],
-    queryFn: () => bookingsApi.getBookings(userId, filters),
-    enabled: !!userId,
+    queryKey: ['bookings', filters],
+    queryFn: () => bookingsApi.getBookings(filters),
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 };

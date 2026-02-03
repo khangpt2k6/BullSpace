@@ -10,14 +10,28 @@ const apiClient = axios.create({
   },
 });
 
+// Store token getter function
+let getAuthToken: (() => Promise<string | null>) | null = null;
+
+// Function to set the token getter (called from AuthContext)
+export const setTokenGetter = (getter: () => Promise<string | null>) => {
+  getAuthToken = getter;
+};
+
 // Request interceptor for adding auth token
 apiClient.interceptors.request.use(
-  (config) => {
-    // TODO: Add auth token when authentication is implemented
-    // const token = getAuthToken();
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+  async (config) => {
+    // Get Clerk session token if available
+    if (getAuthToken) {
+      try {
+        const token = await getAuthToken();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch (error) {
+        console.error('Error getting auth token:', error);
+      }
+    }
     return config;
   },
   (error) => {
