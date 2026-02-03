@@ -84,14 +84,43 @@ export default function AuthScreen() {
         setLoading(true);
         setError('');
 
-        const { createdSessionId, setActive } = await startOAuth();
+        console.log('🔐 Starting OAuth flow...');
+        const { createdSessionId, setActive, signIn, signUp } = await startOAuth();
 
+        console.log('✅ OAuth response:', { createdSessionId, hasSetActive: !!setActive, signIn, signUp });
+
+        // Check if we have a session ID to activate
         if (createdSessionId) {
-          setActive!({ session: createdSessionId });
+          console.log('🔄 Setting active session:', createdSessionId);
+          await setActive({ session: createdSessionId });
+          console.log('✅ Session activated successfully!');
+        } 
+        // If no session but we have a signUp with a session, activate it
+        else if (signUp?.createdSessionId) {
+          console.log('🔄 Activating signUp session:', signUp.createdSessionId);
+          await setActive({ session: signUp.createdSessionId });
+          console.log('✅ SignUp session activated!');
+        }
+        // If no session but we have a signIn with a session, activate it
+        else if (signIn?.createdSessionId) {
+          console.log('🔄 Activating signIn session:', signIn.createdSessionId);
+          await setActive({ session: signIn.createdSessionId });
+          console.log('✅ SignIn session activated!');
+        }
+        else {
+          console.warn('⚠️ No session found in OAuth response', { 
+            createdSessionId, 
+            signInSessionId: signIn?.createdSessionId,
+            signUpSessionId: signUp?.createdSessionId,
+            signInStatus: signIn?.status,
+            signUpStatus: signUp?.status
+          });
+          setError('Authentication completed but session creation failed. Please try logging in manually.');
         }
       } catch (err: any) {
-        console.error('OAuth error:', err);
-        setError('OAuth sign in failed. Please try again.');
+        console.error('❌ OAuth error:', err);
+        console.error('Error details:', JSON.stringify(err, null, 2));
+        setError(err.message || 'OAuth sign in failed. Please try again.');
       } finally {
         setLoading(false);
       }

@@ -34,6 +34,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Sync Clerk user with our User model
   useEffect(() => {
+    console.log('👤 AuthContext: Clerk state changed', { 
+      isClerkLoaded, 
+      hasClerkUser: !!clerkUser,
+      clerkUserId: clerkUser?.id 
+    });
+
     if (isClerkLoaded) {
       if (clerkUser) {
         // Map Clerk user to our User model
@@ -43,8 +49,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           email: clerkUser.primaryEmailAddress?.emailAddress || '',
           role: 'student', // Default role, can be customized based on Clerk metadata
         };
+        console.log('✅ User authenticated:', mappedUser);
         setUser(mappedUser);
       } else {
+        console.log('❌ No Clerk user found');
         setUser(null);
       }
       setIsLoading(false);
