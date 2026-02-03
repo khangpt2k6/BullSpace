@@ -35,6 +35,8 @@ export interface RoomFilters {
   type?: 'Individual' | 'Group' | 'Large Group';
   floor?: number;
   capacity?: string;
+  startTime?: string; // ISO string for filtering by availability
+  endTime?: string;   // ISO string for filtering by availability
 }
 
 export interface BookingFilters {

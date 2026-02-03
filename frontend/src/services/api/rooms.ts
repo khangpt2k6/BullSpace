@@ -17,6 +17,8 @@ export const roomsApi = {
     if (filters?.type) params.append('type', filters.type);
     if (filters?.floor !== undefined) params.append('floor', filters.floor.toString());
     if (filters?.capacity) params.append('capacity', filters.capacity);
+    if (filters?.startTime) params.append('startTime', filters.startTime);
+    if (filters?.endTime) params.append('endTime', filters.endTime);
 
     const queryString = params.toString();
     const url = `/api/rooms${queryString ? `?${queryString}` : ''}`;
