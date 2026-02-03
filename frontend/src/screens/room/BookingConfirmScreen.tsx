@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Alert } from 'react-native';
-import { Text, Card, Button, ActivityIndicator } from 'react-native-paper';
+import { Text, Card, Button, ActivityIndicator, Divider, Surface } from 'react-native-paper';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { HomeStackParamList } from '../../types/navigation';
 import { useRoom } from '../../hooks/api/useRooms';
 import { useCreateBooking } from '../../hooks/api/useBookings';
@@ -29,22 +30,19 @@ export default function BookingConfirmScreen() {
     }
 
     try {
-      // userId is automatically taken from auth token by backend
       await createBooking.mutateAsync({
         roomId,
         startTime,
         endTime,
       });
 
-      // Success! Show confirmation and navigate to bookings
       Alert.alert(
-        '✅ Booking Created!',
+        'Booking Created!',
         'Your booking has been created successfully! Please confirm it within 10 minutes to secure your room.',
         [
           {
             text: 'View My Bookings',
             onPress: () => {
-              // Navigate to Bookings tab
               navigation.getParent()?.navigate('BookingsTab');
             },
           },
@@ -56,15 +54,16 @@ export default function BookingConfirmScreen() {
         ]
       );
     } catch (error: any) {
-      // Check if it's a conflict error (room already occupied)
       const isConflict = error.status === 409 ||
                         error.response?.status === 409 ||
                         error.message?.includes('conflicts with an existing booking');
 
       if (isConflict) {
+        const start = new Date(startTime);
+        const end = new Date(endTime);
         const bookingTime = `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`;
         Alert.alert(
-          '🚫 Time Slot Occupied',
+          'Time Slot Occupied',
           `This room is already booked for ${bookingTime}. Someone else has reserved this time slot.\n\nPlease choose a different time or browse other available rooms.`,
           [
             {
@@ -79,7 +78,7 @@ export default function BookingConfirmScreen() {
         );
       } else {
         Alert.alert(
-          '❌ Booking Failed',
+          'Booking Failed',
           error.message || 'Failed to create booking. Please try again.',
           [{ text: 'OK' }]
         );
@@ -91,6 +90,7 @@ export default function BookingConfirmScreen() {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={USF_GREEN} />
+        <Text style={styles.loadingText}>Loading room details...</Text>
       </View>
     );
   }
@@ -100,72 +100,142 @@ export default function BookingConfirmScreen() {
   if (!room) {
     return (
       <View style={styles.centered}>
-        <Text variant="bodyLarge">Room not found</Text>
+        <MaterialCommunityIcons name="alert-circle-outline" size={64} color="#999" />
+        <Text variant="bodyLarge" style={styles.errorText}>Room not found</Text>
       </View>
     );
   }
 
   const start = new Date(startTime);
   const end = new Date(endTime);
-  const duration = Math.round((end.getTime() - start.getTime()) / (60 * 1000)); // minutes
+  const duration = Math.round((end.getTime() - start.getTime()) / (60 * 1000));
 
   return (
-    <ScrollView style={styles.container}>
-      <Card style={styles.card}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <Surface style={styles.headerSurface} elevation={1}>
+        <MaterialCommunityIcons name="check-circle" size={48} color={USF_GREEN} />
+        <Text variant="headlineMedium" style={styles.headerTitle}>
+          Confirm Your Booking
+        </Text>
+        <Text variant="bodyMedium" style={styles.headerSubtitle}>
+          Review your booking details below
+        </Text>
+      </Surface>
+
+      <Card style={styles.card} mode="elevated">
         <Card.Content>
-          <Text variant="headlineSmall" style={styles.title}>
-            Confirm Your Booking
-          </Text>
-
-          <View style={styles.section}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>Room</Text>
-            <Text variant="bodyLarge" style={styles.roomId}>{room._id}</Text>
-            <Text variant="bodyMedium" style={styles.detail}>
-              {room.building} • Floor {room.floor}
-            </Text>
-            <Text variant="bodyMedium" style={styles.detail}>
-              {room.type} • {room.capacity}
-            </Text>
+          {/* Room Information */}
+          <View style={styles.infoSection}>
+            <View style={styles.sectionHeader}>
+              <MaterialCommunityIcons name="door" size={24} color={USF_GREEN} />
+              <Text variant="titleLarge" style={styles.sectionTitle}>Room Details</Text>
+            </View>
+            
+            <Surface style={styles.detailBox} elevation={0}>
+              <Text variant="headlineSmall" style={styles.roomId}>{room._id}</Text>
+              
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons name="office-building" size={20} color="#666" />
+                <Text variant="bodyLarge" style={styles.detailText}>
+                  {room.building} • Floor {room.floor}
+                </Text>
+              </View>
+              
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons name="shape" size={20} color="#666" />
+                <Text variant="bodyLarge" style={styles.detailText}>
+                  {room.type}
+                </Text>
+              </View>
+              
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons name="account-group" size={20} color="#666" />
+                <Text variant="bodyLarge" style={styles.detailText}>
+                  Capacity: {room.capacity}
+                </Text>
+              </View>
+            </Surface>
           </View>
 
-          <View style={styles.section}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>Time</Text>
-            <Text variant="bodyLarge">{format(start, 'EEEE, MMM d, yyyy')}</Text>
-            <Text variant="bodyMedium" style={styles.detail}>
-              {format(start, 'h:mm a')} - {format(end, 'h:mm a')}
-            </Text>
-            <Text variant="bodySmall" style={styles.duration}>
-              Duration: {duration} minutes
-            </Text>
+          <Divider style={styles.divider} />
+
+          {/* Time Information */}
+          <View style={styles.infoSection}>
+            <View style={styles.sectionHeader}>
+              <MaterialCommunityIcons name="calendar-clock" size={24} color={USF_GREEN} />
+              <Text variant="titleLarge" style={styles.sectionTitle}>Schedule</Text>
+            </View>
+            
+            <Surface style={styles.detailBox} elevation={0}>
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons name="calendar" size={20} color="#666" />
+                <Text variant="bodyLarge" style={styles.detailText}>
+                  {format(start, 'EEEE, MMMM d, yyyy')}
+                </Text>
+              </View>
+              
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons name="clock-outline" size={20} color="#666" />
+                <Text variant="bodyLarge" style={styles.detailText}>
+                  {format(start, 'h:mm a')} - {format(end, 'h:mm a')}
+                </Text>
+              </View>
+              
+              <View style={styles.detailRow}>
+                <MaterialCommunityIcons name="timer-outline" size={20} color="#666" />
+                <Text variant="bodyLarge" style={styles.detailText}>
+                  {duration} minutes
+                </Text>
+              </View>
+            </Surface>
           </View>
 
-          <View style={styles.warningBox}>
+          <Divider style={styles.divider} />
+
+          {/* Warning Box */}
+          <Surface style={styles.warningBox} elevation={0}>
+            <View style={styles.warningHeader}>
+              <MaterialCommunityIcons name="alert" size={24} color="#E65100" />
+              <Text variant="titleMedium" style={styles.warningTitle}>
+                Important Notice
+              </Text>
+            </View>
             <Text variant="bodyMedium" style={styles.warningText}>
-              ⏱️ Important: You must confirm this booking within 10 minutes, or it will be automatically cancelled.
+              You must confirm this booking within 10 minutes, or it will be automatically cancelled.
             </Text>
-          </View>
+          </Surface>
         </Card.Content>
       </Card>
 
-      <Button
-        mode="contained"
-        onPress={handleConfirm}
-        loading={createBooking.isPending}
-        disabled={createBooking.isPending}
-        style={styles.confirmButton}
-        contentStyle={styles.confirmButtonContent}
-      >
-        Confirm Booking
-      </Button>
+      {/* Action Buttons */}
+      <View style={styles.buttonContainer}>
+        <Button
+          mode="contained"
+          onPress={handleConfirm}
+          loading={createBooking.isPending}
+          disabled={createBooking.isPending}
+          style={styles.confirmButton}
+          contentStyle={styles.confirmButtonContent}
+          icon={({ size, color }) => (
+            <MaterialCommunityIcons name="check-bold" size={size} color={color} />
+          )}
+        >
+          Confirm Booking
+        </Button>
 
-      <Button
-        mode="outlined"
-        onPress={() => navigation.goBack()}
-        disabled={createBooking.isPending}
-        style={styles.cancelButton}
-      >
-        Cancel
-      </Button>
+        <Button
+          mode="outlined"
+          onPress={() => navigation.goBack()}
+          disabled={createBooking.isPending}
+          style={styles.cancelButton}
+          contentStyle={styles.cancelButtonContent}
+          icon={({ size }) => (
+            <MaterialCommunityIcons name="close" size={size} color="#666" />
+          )}
+        >
+          Cancel
+        </Button>
+      </View>
     </ScrollView>
   );
 }
@@ -173,60 +243,121 @@ export default function BookingConfirmScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F5F5F5',
+  },
+  contentContainer: {
+    paddingBottom: 24,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 24,
   },
-  card: {
-    margin: 16,
-    elevation: 2,
+  loadingText: {
+    marginTop: 16,
+    color: '#666',
   },
-  title: {
-    fontWeight: 'bold',
-    color: USF_GREEN,
+  errorText: {
+    marginTop: 16,
+    color: '#999',
+  },
+  headerSurface: {
+    backgroundColor: '#FFFFFF',
+    padding: 24,
+    alignItems: 'center',
     marginBottom: 16,
   },
-  section: {
-    marginBottom: 20,
+  headerTitle: {
+    fontWeight: 'bold',
+    color: USF_GREEN,
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  headerSubtitle: {
+    color: '#666',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  card: {
+    marginHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  infoSection: {
+    marginVertical: 8,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   sectionTitle: {
     fontWeight: '600',
-    marginBottom: 8,
     color: '#333',
+    marginLeft: 12,
+  },
+  detailBox: {
+    backgroundColor: '#F8F9FA',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   roomId: {
     fontWeight: 'bold',
     color: USF_GREEN,
+    marginBottom: 12,
   },
-  detail: {
-    color: '#666',
-    marginTop: 4,
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 6,
   },
-  duration: {
-    color: '#999',
-    marginTop: 8,
+  detailText: {
+    color: '#333',
+    marginLeft: 12,
+    flex: 1,
+  },
+  divider: {
+    marginVertical: 16,
   },
   warningBox: {
     backgroundColor: '#FFF3E0',
-    padding: 12,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#E65100',
     marginTop: 8,
+  },
+  warningHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  warningTitle: {
+    color: '#E65100',
+    fontWeight: '600',
+    marginLeft: 8,
   },
   warningText: {
     color: '#E65100',
+    lineHeight: 20,
+  },
+  buttonContainer: {
+    padding: 16,
+    gap: 12,
   },
   confirmButton: {
-    margin: 16,
-    marginTop: 0,
+    borderRadius: 12,
   },
   confirmButtonContent: {
     height: 50,
   },
   cancelButton: {
-    marginHorizontal: 16,
-    marginBottom: 16,
+    borderRadius: 12,
+    borderColor: '#CCC',
+  },
+  cancelButtonContent: {
+    height: 50,
   },
 });
