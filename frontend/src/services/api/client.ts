@@ -67,4 +67,23 @@ apiClient.interceptors.response.use(
   }
 );
 
-export default apiClient;
+// Typed API client that accounts for the response interceptor unwrapping
+const typedApiClient = {
+  get: <T>(url: string): Promise<T> => {
+    return apiClient.get(url) as Promise<T>;
+  },
+  post: <T>(url: string, data?: any): Promise<T> => {
+    return apiClient.post(url, data) as Promise<T>;
+  },
+  put: <T>(url: string, data?: any): Promise<T> => {
+    return apiClient.put(url, data) as Promise<T>;
+  },
+  delete: <T>(url: string): Promise<T> => {
+    return apiClient.delete(url) as Promise<T>;
+  },
+  patch: <T>(url: string, data?: any): Promise<T> => {
+    return apiClient.patch(url, data) as Promise<T>;
+  },
+};
+
+export default typedApiClient;
