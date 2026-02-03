@@ -299,4 +299,55 @@ router.post('/:id/cancel', requireAuth, async (req: Request, res: Response): Pro
   }
 });
 
+// DELETE /api/bookings/:id - Delete a booking (for past bookings only)
+router.delete('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      res.status(404).json({
+        success: false,
+        error: 'Booking not found'
+      });
+      return;
+    }
+
+    // Verify the booking belongs to the authenticated user
+    if (booking.userId !== req.userId) {
+      res.status(403).json({
+        success: false,
+        error: 'You do not have permission to delete this booking'
+      });
+      return;
+    }
+
+    // Only allow deletion of past bookings (ended, cancelled, or expired)
+    const now = new Date();
+    const hasEnded = booking.endTime < now;
+    const canDelete = hasEnded || booking.status === 'CANCELLED' || booking.status === 'EXPIRED';
+
+    if (!canDelete) {
+      res.status(400).json({
+        success: false,
+        error: 'Can only delete past bookings (ended, cancelled, or expired)'
+      });
+      return;
+    }
+
+    // Delete the booking from database
+    await Booking.findByIdAndDelete(req.params.id);
+
+    res.json({
+      success: true,
+      message: 'Booking deleted successfully'
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({
+      success: false,
+      error: errorMessage
+    });
+  }
+});
+
 export default router;
