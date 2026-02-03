@@ -93,10 +93,15 @@ export async function sendBookingEmail(notification: EmailNotification) {
     });
 
     console.log(`✅ Email sent successfully to ${notification.userEmail}`);
+    console.log('📧 Resend response:', JSON.stringify(result, null, 2));
     return { success: true, mode: 'sent', data: result };
 
   } catch (error) {
     console.error('❌ Error sending email:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     // Don't throw - just log the error so the notification service keeps running
     return { success: false, error };
   }
