@@ -16,6 +16,7 @@ export default function HomeScreen() {
   const socket = useSocket();
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<RoomFilters>({});
+  const [roomOccupancy, setRoomOccupancy] = useState<Record<string, string | undefined>>({});
 
   const { data, isLoading, refetch, isRefetching } = useRooms(filters);
 
@@ -23,6 +24,22 @@ export default function HomeScreen() {
   useEffect(() => {
     const handleRoomUpdate = (update: any) => {
       console.log('Room update received:', update);
+
+      // Update occupancy info if bookingEndTime is provided
+      if (update.bookingEndTime) {
+        setRoomOccupancy(prev => ({
+          ...prev,
+          [update.roomId]: update.bookingEndTime
+        }));
+      } else if (update.status === 'AVAILABLE') {
+        // Clear occupancy info when room becomes available
+        setRoomOccupancy(prev => {
+          const newState = { ...prev };
+          delete newState[update.roomId];
+          return newState;
+        });
+      }
+
       // Refetch rooms list to show updated availability
       refetch();
     };
@@ -40,7 +57,16 @@ export default function HomeScreen() {
     room.type.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
-  const renderRoomCard = ({ item }: { item: Room }) => (
+  // Format occupancy time to show "Occupied until [time]"
+  const formatOccupiedUntil = (endTime: string): string => {
+    const date = new Date(endTime);
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  };
+
+  const renderRoomCard = ({ item }: { item: Room }) => {
+    const occupiedUntil = roomOccupancy[item._id];
+
+    return (
     <Card
       style={styles.card}
       onPress={() => navigation.navigate('RoomDetails', { roomId: item._id })}
@@ -65,6 +91,12 @@ export default function HomeScreen() {
         <Text variant="bodyMedium" style={styles.building}>
           {item.building} • Floor {item.floor}
         </Text>
+
+        {!item.available && occupiedUntil && (
+          <Text variant="bodySmall" style={styles.occupiedUntil}>
+            Occupied until {formatOccupiedUntil(occupiedUntil)}
+          </Text>
+        )}
 
         <View style={styles.detailsRow}>
           <Chip mode="outlined" compact style={styles.detailChip}>
@@ -97,7 +129,8 @@ export default function HomeScreen() {
         )}
       </Card.Content>
     </Card>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -179,7 +212,12 @@ const styles = StyleSheet.create({
   },
   building: {
     color: '#666',
-    marginBottom: 12,
+    marginBottom: 8,
+  },
+  occupiedUntil: {
+    color: '#F44336',
+    fontWeight: '600',
+    marginBottom: 8,
   },
   detailsRow: {
     flexDirection: 'row',
