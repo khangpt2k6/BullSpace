@@ -27,6 +27,8 @@ export default function AuthScreen() {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
 
   const handleLogin = async () => {
     if (!signInLoaded) return;
@@ -68,11 +70,33 @@ export default function AuthScreen() {
       // Send email verification code
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
 
-      // Create session after signup
-      await setActiveSignUp({ session: signUp.createdSessionId });
+      // Show verification input instead of creating session immediately
+      setPendingVerification(true);
     } catch (err: any) {
       console.error('Signup error:', err);
       setError(err.errors?.[0]?.message || 'Signup failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyEmail = async () => {
+    if (!signUpLoaded) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // Verify the email with the code
+      const completeSignUp = await signUp.attemptEmailAddressVerification({
+        code: verificationCode,
+      });
+
+      // Create session after successful verification
+      await setActiveSignUp({ session: completeSignUp.createdSessionId });
+    } catch (err: any) {
+      console.error('Verification error:', err);
+      setError(err.errors?.[0]?.message || 'Verification failed. Please check your code.');
     } finally {
       setLoading(false);
     }
@@ -146,15 +170,60 @@ export default function AuthScreen() {
         <Card style={styles.card}>
           <Card.Content>
             <Text variant="headlineSmall" style={styles.cardTitle}>
-              {isLogin ? 'Welcome Back' : 'Create Account'}
+              {pendingVerification ? 'Verify Your Email' : isLogin ? 'Welcome Back' : 'Create Account'}
             </Text>
 
             {error ? (
               <Text style={styles.errorText}>{error}</Text>
             ) : null}
 
-            {/* Social Login Buttons */}
-            <View style={styles.socialContainer}>
+            {/* Email Verification Form */}
+            {pendingVerification ? (
+              <>
+                <Text style={styles.verificationText}>
+                  We've sent a verification code to {email}. Please enter it below.
+                </Text>
+
+                <TextInput
+                  label="Verification Code"
+                  value={verificationCode}
+                  onChangeText={setVerificationCode}
+                  mode="outlined"
+                  style={styles.input}
+                  keyboardType="number-pad"
+                  autoCapitalize="none"
+                  disabled={loading}
+                  placeholder="Enter 6-digit code"
+                />
+
+                <Button
+                  mode="contained"
+                  onPress={handleVerifyEmail}
+                  loading={loading}
+                  disabled={loading || !verificationCode}
+                  style={styles.button}
+                  contentStyle={styles.buttonContent}
+                >
+                  Verify Email
+                </Button>
+
+                <Button
+                  mode="text"
+                  onPress={() => {
+                    setPendingVerification(false);
+                    setVerificationCode('');
+                    setError('');
+                  }}
+                  disabled={loading}
+                  style={styles.switchButton}
+                >
+                  Back to Sign Up
+                </Button>
+              </>
+            ) : (
+              <>
+                {/* Social Login Buttons */}
+                <View style={styles.socialContainer}>
               <Button
                 mode="outlined"
                 onPress={() => handleOAuthSignIn(startGoogleOAuth)}
@@ -253,6 +322,8 @@ export default function AuthScreen() {
                 ? "Don't have an account? Sign Up"
                 : 'Already have an account? Log In'}
             </Button>
+              </>
+            )}
           </Card.Content>
         </Card>
       </ScrollView>
@@ -295,6 +366,11 @@ const styles = StyleSheet.create({
     color: '#D32F2F',
     marginBottom: 12,
     textAlign: 'center',
+  },
+  verificationText: {
+    marginBottom: 16,
+    textAlign: 'center',
+    color: '#666',
   },
   socialContainer: {
     marginBottom: 16,
