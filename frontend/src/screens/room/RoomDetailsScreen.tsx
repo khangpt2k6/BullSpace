@@ -49,18 +49,7 @@ export default function RoomDetailsScreen() {
     };
   }, [roomId, socket, refetch]);
 
-  if (isLoading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={USF_GREEN} />
-      </View>
-    );
-  }
-
-  if (!data?.room) {
-    return (
-      <View style={styles.centered}>
-        <Text StartDateChange = (event: any, selectedDate?: Date) => {
+  const handleStartDateChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
       setShowStartPicker(false);
     }
@@ -102,16 +91,27 @@ export default function RoomDetailsScreen() {
     navigation.navigate('BookingConfirm', {
       roomId: room._id,
       startTime: startDate.toISOString(),
-      endTime: endDate.toISOString() = new Date();
-    const startTime = new Date(now.getTime() + 60 * 60 * 1000).toISOString(); // 1 hour from now
-    const endTime = new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString(); // 2 hours from now
-
-    navigation.navigate('BookingConfirm', {
-      roomId: room._id,
-      startTime,
-      endTime,
+      endTime: endDate.toISOString(),
     });
   };
+
+  if (isLoading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={USF_GREEN} />
+      </View>
+    );
+  }
+
+  if (!data?.room) {
+    return (
+      <View style={styles.centered}>
+        <Text variant="bodyLarge">Room not found</Text>
+      </View>
+    );
+  }
+
+  const room = data.room;
 
   return (
     <ScrollView style={styles.container}>
@@ -140,6 +140,39 @@ export default function RoomDetailsScreen() {
           <Divider style={styles.divider} />
 
           <Text variant="titleSmall" style={styles.sectionTitle}>Details</Text>
+          <View style={styles.detailsRow}>
+            <Text variant="bodyMedium" style={styles.label}>Type:</Text>
+            <Text variant="bodyMedium">{room.type}</Text>
+          </View>
+          <View style={styles.detailsRow}>
+            <Text variant="bodyMedium" style={styles.label}>Capacity:</Text>
+            <Text variant="bodyMedium">{room.capacity}</Text>
+          </View>
+
+          {room.description && (
+            <>
+              <Divider style={styles.divider} />
+              <Text variant="titleSmall" style={styles.sectionTitle}>Description</Text>
+              <Text variant="bodyMedium">{room.description}</Text>
+            </>
+          )}
+
+          {room.features.length > 0 && (
+            <>
+              <Divider style={styles.divider} />
+              <Text variant="titleSmall" style={styles.sectionTitle}>Features</Text>
+              <View style={styles.featuresContainer}>
+                {room.features.map((feature, index) => (
+                  <Chip key={index} mode="outlined" style={styles.featureChip}>
+                    {feature}
+                  </Chip>
+                ))}
+              </View>
+            </>
+          )}
+        </Card.Content>
+      </Card>
+
       {/* Booking Time Selection */}
       <Card style={styles.card}>
         <Card.Content>
@@ -231,65 +264,6 @@ export default function RoomDetailsScreen() {
         />
       )}
 
-          <View style={styles.detailsRow}>
-            <Text variant="bodyMedium" style={styles.label}>Type:</Text>
-            <Text variant="bodyMedium">{room.type}</Text>
-          </View>
-          <View style={styles.detailsRow}>
-            <Text variant="bodyMedium" style={styles.label}>Capacity:</Text>
-            <Text variant="bodyMedium">{room.capacity}</Text>
-          </View>
-
-          {room.description && (
-            <>
-  timeSection: {
-    marginBottom: 16,
-  },
-  timeLabel: {
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#333',
-  },
-  timeButtonsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  timeButton: {
-    flex: 1,
-  },
-  durationContainer: {
-    backgroundColor: '#F0F0F0',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  durationText: {
-    textAlign: 'center',
-    fontWeight: '600',
-    color: USF_GREEN,
-  },
-              <Divider style={styles.divider} />
-              <Text variant="titleSmall" style={styles.sectionTitle}>Description</Text>
-              <Text variant="bodyMedium">{room.description}</Text>
-            </>
-          )}
-
-          {room.features.length > 0 && (
-            <>
-              <Divider style={styles.divider} />
-              <Text variant="titleSmall" style={styles.sectionTitle}>Features</Text>
-              <View style={styles.featuresContainer}>
-                {room.features.map((feature, index) => (
-                  <Chip key={index} mode="outlined" style={styles.featureChip}>
-                    {feature}
-                  </Chip>
-                ))}
-              </View>
-            </>
-          )}
-        </Card.Content>
-      </Card>
-
       <Button
         mode="contained"
         onPress={handleBookRoom}
@@ -358,6 +332,32 @@ const styles = StyleSheet.create({
   },
   featureChip: {
     marginBottom: 8,
+  },
+  timeSection: {
+    marginBottom: 16,
+  },
+  timeLabel: {
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#333',
+  },
+  timeButtonsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  timeButton: {
+    flex: 1,
+  },
+  durationContainer: {
+    backgroundColor: '#F0F0F0',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  durationText: {
+    textAlign: 'center',
+    fontWeight: '600',
+    color: USF_GREEN,
   },
   bookButton: {
     margin: 16,
