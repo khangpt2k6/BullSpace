@@ -194,31 +194,33 @@ export default function BookingDetailsScreen() {
         </Card.Content>
       </Card>
 
-      {canConfirm && (
-        <Button
-          mode="contained"
-          onPress={handleConfirm}
-          loading={confirmBooking.isPending}
-          disabled={confirmBooking.isPending}
-          style={styles.confirmButton}
-          contentStyle={styles.buttonContent}
-        >
-          Confirm Booking
-        </Button>
-      )}
+      <View style={styles.buttonContainer}>
+        {canConfirm && (
+          <Button
+            mode="contained"
+            onPress={handleConfirm}
+            loading={confirmBooking.isPending}
+            disabled={confirmBooking.isPending}
+            style={styles.confirmButton}
+            contentStyle={styles.buttonContent}
+          >
+            Confirm Booking
+          </Button>
+        )}
 
-      {canCancel && (
-        <Button
-          mode="outlined"
-          onPress={handleCancel}
-          loading={cancelBooking.isPending}
-          disabled={cancelBooking.isPending}
-          style={styles.cancelButton}
-          textColor="#F44336"
-        >
-          Cancel Booking
-        </Button>
-      )}
+        {canCancel && (
+          <Button
+            mode="outlined"
+            onPress={handleCancel}
+            loading={cancelBooking.isPending}
+            disabled={cancelBooking.isPending}
+            style={styles.cancelButton}
+            textColor="#F44336"
+          >
+            Cancel Booking
+          </Button>
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -285,6 +287,9 @@ const styles = StyleSheet.create({
   },
   warningText: {
     color: '#E65100',
+  },
+  buttonContainer: {
+    paddingBottom: 120, // Extra space for bottom navigation
   },
   confirmButton: {
     margin: 16,
