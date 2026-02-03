@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
-import { Card, Text, Chip, ActivityIndicator, SegmentedButtons } from 'react-native-paper';
+import { View, FlatList, StyleSheet, RefreshControl, Alert } from 'react-native';
+import { Card, Text, Chip, ActivityIndicator, SegmentedButtons, IconButton } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { BookingsStackParamList } from '../../types/navigation';
-import { useBookings } from '../../hooks/api/useBookings';
+import { useBookings, useDeleteBooking } from '../../hooks/api/useBookings';
 import { Booking } from '../../types/models';
 import { USF_GREEN, STATUS_PENDING, STATUS_CONFIRMED, STATUS_CANCELLED, STATUS_EXPIRED } from '../../theme/colors';
 import { format } from 'date-fns';
@@ -17,6 +17,7 @@ export default function MyBookingsScreen() {
 
   // Fetch all bookings for authenticated user (not filtered by status)
   const { data, isLoading, refetch, isRefetching } = useBookings();
+  const deleteBooking = useDeleteBooking();
 
   // Filter bookings based on whether they're actually past or not
   const now = new Date();
@@ -48,6 +49,21 @@ export default function MyBookingsScreen() {
     }
   };
 
+  const handleDeleteBooking = async (bookingId: string, roomId: string) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the booking for ${roomId}? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await deleteBooking.mutateAsync(bookingId);
+      Alert.alert('✅ Deleted', 'Booking deleted successfully');
+    } catch (error: any) {
+      Alert.alert('❌ Error', error.message || 'Failed to delete booking');
+    }
+  };
+
   const renderBookingCard = ({ item }: { item: Booking }) => {
     const startDate = new Date(item.startTime);
     const endDate = new Date(item.endTime);
@@ -65,6 +81,9 @@ export default function MyBookingsScreen() {
       ? item.roomId
       : (item.roomId as any)?._id || 'Unknown Room';
 
+    // Check if this booking is in the past tab
+    const isPastBooking = hasEnded || item.status === 'CANCELLED';
+
     return (
       <Card
         style={styles.card}
@@ -72,19 +91,35 @@ export default function MyBookingsScreen() {
       >
         <Card.Content>
           <View style={styles.cardHeader}>
-            <Text variant="titleLarge" style={styles.roomId}>
-              {roomId}
-            </Text>
-            <Chip
-              mode="flat"
-              style={[
-                styles.statusChip,
-                { backgroundColor: getStatusColor(displayStatus) }
-              ]}
-              textStyle={{ color: '#FFFFFF' }}
-            >
-              {displayStatus}
-            </Chip>
+            <View style={styles.cardHeaderLeft}>
+              <Text variant="titleLarge" style={styles.roomId}>
+                {roomId}
+              </Text>
+            </View>
+            <View style={styles.cardHeaderRight}>
+              <Chip
+                mode="flat"
+                style={[
+                  styles.statusChip,
+                  { backgroundColor: getStatusColor(displayStatus) }
+                ]}
+                textStyle={{ color: '#FFFFFF' }}
+              >
+                {displayStatus}
+              </Chip>
+              {isPastBooking && activeTab === 'past' && (
+                <IconButton
+                  icon="delete"
+                  iconColor="#F44336"
+                  size={20}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handleDeleteBooking(item._id, roomId);
+                  }}
+                  style={styles.deleteButton}
+                />
+              )}
+            </View>
           </View>
 
           <View style={styles.dateTimeSection}>
@@ -186,12 +221,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  cardHeaderLeft: {
+    flex: 1,
+  },
+  cardHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   roomId: {
     fontWeight: 'bold',
     color: USF_GREEN,
   },
   statusChip: {
     height: 28,
+  },
+  deleteButton: {
+    margin: 0,
   },
   dateTimeSection: {
     marginBottom: 12,

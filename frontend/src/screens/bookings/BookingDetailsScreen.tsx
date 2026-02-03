@@ -4,7 +4,7 @@ import { Text, Card, Button, ActivityIndicator, Chip, Divider } from 'react-nati
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { BookingsStackParamList } from '../../types/navigation';
-import { useBooking, useConfirmBooking, useCancelBooking } from '../../hooks/api/useBookings';
+import { useBooking, useConfirmBooking, useCancelBooking, useDeleteBooking } from '../../hooks/api/useBookings';
 import { useRoom } from '../../hooks/api/useRooms';
 import { USF_GREEN, STATUS_PENDING, STATUS_CONFIRMED, STATUS_CANCELLED, STATUS_EXPIRED } from '../../theme/colors';
 import { format } from 'date-fns';
@@ -20,6 +20,7 @@ export default function BookingDetailsScreen() {
   const { data: bookingData, isLoading: bookingLoading } = useBooking(bookingId);
   const confirmBooking = useConfirmBooking();
   const cancelBooking = useCancelBooking();
+  const deleteBooking = useDeleteBooking();
 
   const booking = bookingData?.booking;
 
@@ -89,6 +90,23 @@ export default function BookingDetailsScreen() {
     }
   };
 
+  const handleDelete = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this booking? This action cannot be undone.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await deleteBooking.mutateAsync(bookingId);
+      Alert.alert('✅ Deleted', 'Booking deleted successfully', [
+        { text: 'OK', onPress: () => navigation.navigate('MyBookings') }
+      ]);
+    } catch (error: any) {
+      Alert.alert('❌ Error', error.message || 'Failed to delete booking');
+    }
+  };
+
   if (bookingLoading) {
     return (
       <View style={styles.centered}>
@@ -120,6 +138,7 @@ export default function BookingDetailsScreen() {
 
   const canConfirm = booking.status === 'PENDING' && !hasEnded;
   const canCancel = (booking.status === 'PENDING' || booking.status === 'CONFIRMED') && !hasEnded;
+  const canDelete = hasEnded || booking.status === 'CANCELLED' || booking.status === 'EXPIRED';
 
   return (
     <View style={styles.container}>
@@ -235,6 +254,20 @@ export default function BookingDetailsScreen() {
             Cancel Booking
           </Button>
         )}
+
+        {canDelete && (
+          <Button
+            mode="outlined"
+            onPress={handleDelete}
+            loading={deleteBooking.isPending}
+            disabled={deleteBooking.isPending}
+            style={styles.deleteButton}
+            textColor="#D32F2F"
+            icon="delete"
+          >
+            Delete Booking
+          </Button>
+        )}
       </View>
       </ScrollView>
     </View>
@@ -321,5 +354,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 16,
     borderColor: '#F44336',
+  },
+  deleteButton: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderColor: '#D32F2F',
   },
 });

@@ -40,4 +40,9 @@ export const bookingsApi = {
   cancelBooking: async (bookingId: string): Promise<BookingResponse> => {
     return apiClient.post<BookingResponse>(`/api/bookings/${bookingId}/cancel`);
   },
+
+  // Delete a booking (for past bookings only)
+  deleteBooking: async (bookingId: string): Promise<{ success: boolean; message: string }> => {
+    return apiClient.delete<{ success: boolean; message: string }>(`/api/bookings/${bookingId}`);
+  },
 };

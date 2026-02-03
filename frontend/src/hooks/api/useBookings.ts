@@ -106,3 +106,20 @@ export const useCancelBooking = (): UseMutationResult<BookingResponse, Error, st
     },
   });
 };
+
+// Delete a booking (for past bookings only)
+export const useDeleteBooking = (): UseMutationResult<
+  { success: boolean; message: string },
+  Error,
+  string
+> => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (bookingId: string) => bookingsApi.deleteBooking(bookingId),
+    onSuccess: () => {
+      // Invalidate bookings cache to refetch
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    },
+  });
+};
