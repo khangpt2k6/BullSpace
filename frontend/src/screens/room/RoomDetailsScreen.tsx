@@ -1,12 +1,14 @@
-import React, { useEffect } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, ScrollView, StyleSheet, Platform, Alert } from 'react-native';
 import { Text, Card, Chip, Button, ActivityIndicator, Divider } from 'react-native-paper';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { HomeStackParamList } from '../../types/navigation';
 import { useRoom } from '../../hooks/api/useRooms';
 import { useSocket } from '../../contexts/SocketContext';
 import { USF_GREEN } from '../../theme/colors';
+import { format } from 'date-fns';
 
 type RoomDetailsRouteProp = RouteProp<HomeStackParamList, 'RoomDetails'>;
 type RoomDetailsNavigationProp = StackNavigationProp<HomeStackParamList, 'RoomDetails'>;
@@ -18,6 +20,13 @@ export default function RoomDetailsScreen() {
   const { roomId } = route.params;
 
   const { data, isLoading, refetch } = useRoom(roomId);
+
+  // Date/Time state
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date(Date.now() + 60 * 60 * 1000)); // 1 hour later
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
 
   useEffect(() => {
     // Subscribe to real-time updates for this room
@@ -51,16 +60,49 @@ export default function RoomDetailsScreen() {
   if (!data?.room) {
     return (
       <View style={styles.centered}>
-        <Text variant="bodyLarge">Room not found</Text>
-      </View>
-    );
-  }
+        <Text StartDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowStartPicker(false);
+    }
+    if (selectedDate) {
+      setStartDate(selectedDate);
+      // Automatically adjust end date if it's before start date
+      if (selectedDate >= endDate) {
+        setEndDate(new Date(selectedDate.getTime() + 60 * 60 * 1000)); // Add 1 hour
+      }
+    }
+  };
 
-  const room = data.room;
+  const handleEndDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowEndPicker(false);
+    }
+    if (selectedDate) {
+      if (selectedDate <= startDate) {
+        Alert.alert('Invalid Time', 'End time must be after start time');
+        return;
+      }
+      setEndDate(selectedDate);
+    }
+  };
 
   const handleBookRoom = () => {
-    // Navigate to booking confirmation with default time (current time + 1 hour)
+    // Validate times
     const now = new Date();
+    if (startDate < now) {
+      Alert.alert('Invalid Time', 'Start time cannot be in the past');
+      return;
+    }
+    if (endDate <= startDate) {
+      Alert.alert('Invalid Time', 'End time must be after start time');
+      return;
+    }
+
+    // Navigate to booking confirmation with selected times
+    navigation.navigate('BookingConfirm', {
+      roomId: room._id,
+      startTime: startDate.toISOString(),
+      endTime: endDate.toISOString() = new Date();
     const startTime = new Date(now.getTime() + 60 * 60 * 1000).toISOString(); // 1 hour from now
     const endTime = new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString(); // 2 hours from now
 
@@ -98,6 +140,97 @@ export default function RoomDetailsScreen() {
           <Divider style={styles.divider} />
 
           <Text variant="titleSmall" style={styles.sectionTitle}>Details</Text>
+      {/* Booking Time Selection */}
+      <Card style={styles.card}>
+        <Card.Content>
+          <Text variant="titleSmall" style={styles.sectionTitle}>📅 Select Booking Time</Text>
+          
+          {/* Start Time */}
+          <View style={styles.timeSection}>
+            <Text variant="bodyMedium" style={styles.timeLabel}>Start Time:</Text>
+            <View style={styles.timeButtonsRow}>
+              <Button
+                mode="outlined"
+                onPress={() => {
+                  setPickerMode('date');
+                  setShowStartPicker(true);
+                }}
+                style={styles.timeButton}
+              >
+                📅 {format(startDate, 'MMM dd, yyyy')}
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={() => {
+                  setPickerMode('time');
+                  setShowStartPicker(true);
+                }}
+                style={styles.timeButton}
+              >
+                🕐 {format(startDate, 'hh:mm a')}
+              </Button>
+            </View>
+          </View>
+
+          {/* End Time */}
+          <View style={styles.timeSection}>
+            <Text variant="bodyMedium" style={styles.timeLabel}>End Time:</Text>
+            <View style={styles.timeButtonsRow}>
+              <Button
+                mode="outlined"
+                onPress={() => {
+                  setPickerMode('date');
+                  setShowEndPicker(true);
+                }}
+                style={styles.timeButton}
+              >
+                📅 {format(endDate, 'MMM dd, yyyy')}
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={() => {
+                  setPickerMode('time');
+                  setShowEndPicker(true);
+                }}
+                style={styles.timeButton}
+              >
+                🕐 {format(endDate, 'hh:mm a')}
+              </Button>
+            </View>
+          </View>
+
+          {/* Duration Display */}
+          <View style={styles.durationContainer}>
+            <Text variant="bodySmall" style={styles.durationText}>
+              Duration: {Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60))} minutes
+            </Text>
+          </View>
+        </Card.Content>
+      </Card>
+
+      {/* Date/Time Pickers */}
+      {showStartPicker && (
+        <DateTimePicker
+          value={startDate}
+          mode={pickerMode}
+          is24Hour={false}
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handleStartDateChange}
+          minimumDate={new Date()}
+        />
+      )}
+
+      {showEndPicker && (
+        <DateTimePicker
+          value={endDate}
+          mode={pickerMode}
+          is24Hour={false}
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handleEndDateChange}
+          minimumDate={startDate}
+        />
+      )}
+
           <View style={styles.detailsRow}>
             <Text variant="bodyMedium" style={styles.label}>Type:</Text>
             <Text variant="bodyMedium">{room.type}</Text>
@@ -109,6 +242,32 @@ export default function RoomDetailsScreen() {
 
           {room.description && (
             <>
+  timeSection: {
+    marginBottom: 16,
+  },
+  timeLabel: {
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#333',
+  },
+  timeButtonsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  timeButton: {
+    flex: 1,
+  },
+  durationContainer: {
+    backgroundColor: '#F0F0F0',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  durationText: {
+    textAlign: 'center',
+    fontWeight: '600',
+    color: USF_GREEN,
+  },
               <Divider style={styles.divider} />
               <Text variant="titleSmall" style={styles.sectionTitle}>Description</Text>
               <Text variant="bodyMedium">{room.description}</Text>
