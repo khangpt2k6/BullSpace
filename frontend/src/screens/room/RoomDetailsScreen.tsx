@@ -87,12 +87,35 @@ export default function RoomDetailsScreen() {
       return;
     }
 
+    // Check maximum 3 hours limit
+    const durationMs = endDate.getTime() - startDate.getTime();
+    const durationHours = durationMs / (1000 * 60 * 60);
+    if (durationHours > 3) {
+      Alert.alert('Booking Too Long', 'Maximum booking duration is 3 hours');
+      return;
+    }
+
     // Navigate to booking confirmation with selected times
     navigation.navigate('BookingConfirm', {
       roomId: room._id,
       startTime: startDate.toISOString(),
       endTime: endDate.toISOString(),
     });
+  };
+
+  // Helper function to format duration
+  const formatDuration = (startDate: Date, endDate: Date) => {
+    const durationMs = endDate.getTime() - startDate.getTime();
+    const hours = Math.floor(durationMs / (1000 * 60 * 60));
+    const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours === 0) {
+      return `${minutes} mins`;
+    } else if (minutes === 0) {
+      return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+    } else {
+      return `${hours} ${hours === 1 ? 'hour' : 'hours'} ${minutes} mins`;
+    }
   };
 
   if (isLoading) {
@@ -181,68 +204,130 @@ export default function RoomDetailsScreen() {
           {/* Start Time */}
           <View style={styles.timeSection}>
             <Text variant="bodyMedium" style={styles.timeLabel}>Start Time:</Text>
-            <View style={styles.timeButtonsRow}>
-              <Button
-                mode="outlined"
-                onPress={() => {
-                  setPickerMode('date');
-                  setShowStartPicker(true);
+            {Platform.OS === 'web' ? (
+              <input
+                type="datetime-local"
+                value={format(startDate, "yyyy-MM-dd'T'HH:mm")}
+                min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+                onChange={(e) => {
+                  const newDate = new Date(e.target.value);
+                  if (!isNaN(newDate.getTime())) {
+                    setStartDate(newDate);
+                    if (newDate >= endDate) {
+                      setEndDate(new Date(newDate.getTime() + 60 * 60 * 1000));
+                    }
+                  }
                 }}
-                style={styles.timeButton}
-              >
-                📅 {format(startDate, 'MMM dd, yyyy')}
-              </Button>
-              <Button
-                mode="outlined"
-                onPress={() => {
-                  setPickerMode('time');
-                  setShowStartPicker(true);
+                style={{
+                  width: '100%',
+                  padding: 12,
+                  fontSize: 16,
+                  borderRadius: 4,
+                  border: '1px solid #ccc',
+                  fontFamily: 'system-ui',
                 }}
-                style={styles.timeButton}
-              >
-                🕐 {format(startDate, 'hh:mm a')}
-              </Button>
-            </View>
+              />
+            ) : (
+              <View style={styles.timeButtonsRow}>
+                <Button
+                  mode="outlined"
+                  onPress={() => {
+                    setPickerMode('date');
+                    setShowStartPicker(true);
+                  }}
+                  style={styles.timeButton}
+                >
+                  📅 {format(startDate, 'MMM dd, yyyy')}
+                </Button>
+                <Button
+                  mode="outlined"
+                  onPress={() => {
+                    setPickerMode('time');
+                    setShowStartPicker(true);
+                  }}
+                  style={styles.timeButton}
+                >
+                  🕐 {format(startDate, 'hh:mm a')}
+                </Button>
+              </View>
+            )}
           </View>
 
           {/* End Time */}
           <View style={styles.timeSection}>
             <Text variant="bodyMedium" style={styles.timeLabel}>End Time:</Text>
-            <View style={styles.timeButtonsRow}>
-              <Button
-                mode="outlined"
-                onPress={() => {
-                  setPickerMode('date');
-                  setShowEndPicker(true);
+            {Platform.OS === 'web' ? (
+              <input
+                type="datetime-local"
+                value={format(endDate, "yyyy-MM-dd'T'HH:mm")}
+                min={format(new Date(startDate.getTime() + 60000), "yyyy-MM-dd'T'HH:mm")}
+                max={format(new Date(startDate.getTime() + 3 * 60 * 60 * 1000), "yyyy-MM-dd'T'HH:mm")}
+                onChange={(e) => {
+                  const newDate = new Date(e.target.value);
+                  if (!isNaN(newDate.getTime())) {
+                    if (newDate <= startDate) {
+                      Alert.alert('Invalid Time', 'End time must be after start time');
+                      return;
+                    }
+                    const duration = (newDate.getTime() - startDate.getTime()) / (1000 * 60 * 60);
+                    if (duration > 3) {
+                      Alert.alert('Duration Too Long', 'Maximum booking duration is 3 hours');
+                      return;
+                    }
+                    setEndDate(newDate);
+                  }
                 }}
-                style={styles.timeButton}
-              >
-                📅 {format(endDate, 'MMM dd, yyyy')}
-              </Button>
-              <Button
-                mode="outlined"
-                onPress={() => {
-                  setPickerMode('time');
-                  setShowEndPicker(true);
+                style={{
+                  width: '100%',
+                  padding: 12,
+                  fontSize: 16,
+                  borderRadius: 4,
+                  border: '1px solid #ccc',
+                  fontFamily: 'system-ui',
                 }}
-                style={styles.timeButton}
-              >
-                🕐 {format(endDate, 'hh:mm a')}
-              </Button>
-            </View>
+              />
+            ) : (
+              <View style={styles.timeButtonsRow}>
+                <Button
+                  mode="outlined"
+                  onPress={() => {
+                    setPickerMode('date');
+                    setShowEndPicker(true);
+                  }}
+                  style={styles.timeButton}
+                >
+                  📅 {format(endDate, 'MMM dd, yyyy')}
+                </Button>
+                <Button
+                  mode="outlined"
+                  onPress={() => {
+                    setPickerMode('time');
+                    setShowEndPicker(true);
+                  }}
+                  style={styles.timeButton}
+                >
+                  🕐 {format(endDate, 'hh:mm a')}
+                </Button>
+              </View>
+            )}
           </View>
 
           {/* Duration Display */}
-          <View style={styles.durationContainer}>
+          <View style={[
+            styles.durationContainer,
+            (endDate.getTime() - startDate.getTime()) > (3 * 60 * 60 * 1000) && styles.durationError
+          ]}>
             <Text variant="bodySmall" style={styles.durationText}>
-              Duration: {Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60))} minutes
+              Duration: {formatDuration(startDate, endDate)}
+              {(endDate.getTime() - startDate.getTime()) > (3 * 60 * 60 * 1000) && 
+                ' ⚠️ (Max 3 hours allowed)'}
             </Text>
           </View>
         </Card.Content>
       </Card>
 
-      {/* Date/Time Pickers */}
-      {showStartPicker && (
+      {/* Date/Time Pickers - Only for iOS/Android */}
+      {Platform.OS !== 'web' && showStartPicker && (
         <DateTimePicker
           value={startDate}
           mode={pickerMode}
@@ -253,7 +338,7 @@ export default function RoomDetailsScreen() {
         />
       )}
 
-      {showEndPicker && (
+      {Platform.OS !== 'web' && showEndPicker && (
         <DateTimePicker
           value={endDate}
           mode={pickerMode}
@@ -353,6 +438,9 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginTop: 8,
+  },
+  durationError: {
+    backgroundColor: '#FFE0E0',
   },
   durationText: {
     textAlign: 'center',
