@@ -4,6 +4,20 @@ import { Text, Card, Chip, Button, ActivityIndicator, Divider } from 'react-nati
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  SlideInLeft,
+  ZoomIn,
+  BounceIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { HomeStackParamList } from '../../types/navigation';
 import { useRoom } from '../../hooks/api/useRooms';
 import { useBookings } from '../../hooks/api/useBookings';
@@ -164,22 +178,34 @@ export default function RoomDetailsScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <Card style={styles.card}>
-        <Card.Content>
+      <Animated.View entering={FadeInDown.duration(500).springify()}>
+        <Card style={styles.card}>
+          <Card.Content>
           <View style={styles.header}>
-            <Text variant="headlineMedium" style={styles.roomId}>
-              {room._id}
-            </Text>
-            <Chip
-              mode="flat"
-              style={[
-                styles.availabilityChip,
-                { backgroundColor: room.available ? '#4CAF50' : '#F44336' }
-              ]}
-              textStyle={{ color: '#FFFFFF' }}
-            >
-              {room.available ? 'Available' : 'Occupied'}
-            </Chip>
+            <Animated.View entering={FadeInDown.duration(600).springify()}>
+              <Text variant="headlineMedium" style={styles.roomId}>
+                {room._id}
+              </Text>
+            </Animated.View>
+            <Animated.View entering={ZoomIn.delay(200).duration(400).springify()}>
+              <Chip
+                mode="flat"
+                icon={() => (
+                  <MaterialCommunityIcons
+                    name={room.available ? 'check-circle' : 'clock-alert'}
+                    size={18}
+                    color="#FFFFFF"
+                  />
+                )}
+                style={[
+                  styles.availabilityChip,
+                  { backgroundColor: room.available ? '#4CAF50' : '#F44336' }
+                ]}
+                textStyle={{ color: '#FFFFFF', fontWeight: 'bold' }}
+              >
+                {room.available ? 'Available' : 'Occupied'}
+              </Chip>
+            </Animated.View>
           </View>
 
           <Text variant="titleMedium" style={styles.building}>
@@ -221,11 +247,16 @@ export default function RoomDetailsScreen() {
           )}
         </Card.Content>
       </Card>
+      </Animated.View>
 
       {/* Booking Time Selection */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleSmall" style={styles.sectionTitle}>📅 Select Booking Time</Text>
+      <Animated.View entering={FadeInUp.delay(300).duration(600)}>
+        <Card style={styles.card}>
+          <Card.Content>
+            <View style={styles.sectionTitleContainer}>
+              <MaterialCommunityIcons name="calendar-clock" size={20} color={USF_GREEN} />
+              <Text variant="titleSmall" style={styles.sectionTitle}> Select Booking Time</Text>
+            </View>
           
           {/* Start Time */}
           <View style={styles.timeSection}>
@@ -257,23 +288,25 @@ export default function RoomDetailsScreen() {
               <View style={styles.timeButtonsRow}>
                 <Button
                   mode="outlined"
+                  icon={() => <MaterialCommunityIcons name="calendar" size={18} color={USF_GREEN} />}
                   onPress={() => {
                     setPickerMode('date');
                     setShowStartPicker(true);
                   }}
                   style={styles.timeButton}
                 >
-                  📅 {format(startDate, 'MMM dd, yyyy')}
+                  {format(startDate, 'MMM dd, yyyy')}
                 </Button>
                 <Button
                   mode="outlined"
+                  icon={() => <MaterialCommunityIcons name="clock-outline" size={18} color={USF_GREEN} />}
                   onPress={() => {
                     setPickerMode('time');
                     setShowStartPicker(true);
                   }}
                   style={styles.timeButton}
                 >
-                  🕐 {format(startDate, 'hh:mm a')}
+                  {format(startDate, 'hh:mm a')}
                 </Button>
               </View>
             )}
@@ -316,23 +349,25 @@ export default function RoomDetailsScreen() {
               <View style={styles.timeButtonsRow}>
                 <Button
                   mode="outlined"
+                  icon={() => <MaterialCommunityIcons name="calendar" size={18} color={USF_GREEN} />}
                   onPress={() => {
                     setPickerMode('date');
                     setShowEndPicker(true);
                   }}
                   style={styles.timeButton}
                 >
-                  📅 {format(endDate, 'MMM dd, yyyy')}
+                  {format(endDate, 'MMM dd, yyyy')}
                 </Button>
                 <Button
                   mode="outlined"
+                  icon={() => <MaterialCommunityIcons name="clock-outline" size={18} color={USF_GREEN} />}
                   onPress={() => {
                     setPickerMode('time');
                     setShowEndPicker(true);
                   }}
                   style={styles.timeButton}
                 >
-                  🕐 {format(endDate, 'hh:mm a')}
+                  {format(endDate, 'hh:mm a')}
                 </Button>
               </View>
             )}
@@ -343,14 +378,29 @@ export default function RoomDetailsScreen() {
             styles.durationContainer,
             (endDate.getTime() - startDate.getTime()) > (3 * 60 * 60 * 1000) && styles.durationError
           ]}>
-            <Text variant="bodySmall" style={styles.durationText}>
-              Duration: {formatDuration(startDate, endDate)}
-              {(endDate.getTime() - startDate.getTime()) > (3 * 60 * 60 * 1000) && 
-                ' ⚠️ (Max 3 hours allowed)'}
-            </Text>
+            <View style={styles.durationRow}>
+              <MaterialCommunityIcons
+                name="timer-outline"
+                size={16}
+                color={USF_GREEN}
+                style={styles.durationIcon}
+              />
+              <Text variant="bodySmall" style={styles.durationText}>
+                Duration: {formatDuration(startDate, endDate)}
+              </Text>
+              {(endDate.getTime() - startDate.getTime()) > (3 * 60 * 60 * 1000) && (
+                <View style={styles.warningBadge}>
+                  <MaterialCommunityIcons name="alert" size={14} color="#D32F2F" />
+                  <Text variant="bodySmall" style={styles.warningText}>
+                    Max 3 hours
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
         </Card.Content>
       </Card>
+      </Animated.View>
 
       {/* Date/Time Pickers - Only for iOS/Android */}
       {Platform.OS !== 'web' && showStartPicker && (
@@ -377,29 +427,41 @@ export default function RoomDetailsScreen() {
 
       {/* Time Conflict Warning */}
       {conflictingBooking && (
-        <Card style={[styles.card, styles.conflictWarning]}>
-          <Card.Content>
-            <View style={styles.conflictHeader}>
-              <Text variant="titleMedium" style={styles.conflictTitle}>
-                ⚠️ Time Conflict
+        <Animated.View entering={SlideInLeft.duration(500).springify()}>
+          <Card style={[styles.card, styles.conflictWarning]}>
+            <Card.Content>
+              <View style={styles.conflictHeader}>
+                <MaterialCommunityIcons name="alert-circle" size={24} color="#E65100" />
+                <Text variant="titleMedium" style={styles.conflictTitle}>
+                  Time Conflict
+                </Text>
+              </View>
+              <Text variant="bodyMedium" style={styles.conflictText}>
+                You already have a booking for room <Text style={styles.conflictRoomId}>{conflictingBooking.roomId}</Text> during this time:
               </Text>
-            </View>
-            <Text variant="bodyMedium" style={styles.conflictText}>
-              You already have a booking for room <Text style={styles.conflictRoomId}>{conflictingBooking.roomId}</Text> during this time:
-            </Text>
-            <View style={styles.conflictTimeContainer}>
-              <Text variant="bodySmall" style={styles.conflictTime}>
-                📅 {format(new Date(conflictingBooking.startTime), 'MMM dd, yyyy')}
-              </Text>
-              <Text variant="bodySmall" style={styles.conflictTime}>
-                🕐 {format(new Date(conflictingBooking.startTime), 'hh:mm a')} - {format(new Date(conflictingBooking.endTime), 'hh:mm a')}
-              </Text>
-            </View>
-            <Text variant="bodySmall" style={styles.conflictNote}>
-              Please choose a different time or cancel your existing booking first.
-            </Text>
-          </Card.Content>
-        </Card>
+              <View style={styles.conflictTimeContainer}>
+                <View style={styles.conflictTimeRow}>
+                  <MaterialCommunityIcons name="calendar" size={16} color="#333" />
+                  <Text variant="bodySmall" style={styles.conflictTime}>
+                    {format(new Date(conflictingBooking.startTime), 'MMM dd, yyyy')}
+                  </Text>
+                </View>
+                <View style={styles.conflictTimeRow}>
+                  <MaterialCommunityIcons name="clock-outline" size={16} color="#333" />
+                  <Text variant="bodySmall" style={styles.conflictTime}>
+                    {format(new Date(conflictingBooking.startTime), 'hh:mm a')} - {format(new Date(conflictingBooking.endTime), 'hh:mm a')}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.conflictNoteContainer}>
+                <MaterialCommunityIcons name="information" size={16} color="#666" />
+                <Text variant="bodySmall" style={styles.conflictNote}>
+                  Please choose a different time or cancel your existing booking first.
+                </Text>
+              </View>
+            </Card.Content>
+          </Card>
+        </Animated.View>
       )}
 
       <Button
@@ -455,8 +517,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginLeft: 8,
     color: USF_GREEN,
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   detailsRow: {
     flexDirection: 'row',
@@ -499,10 +566,33 @@ const styles = StyleSheet.create({
   durationError: {
     backgroundColor: '#FFE0E0',
   },
+  durationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+  },
+  durationIcon: {
+    marginRight: 6,
+  },
   durationText: {
-    textAlign: 'center',
     fontWeight: '600',
     color: USF_GREEN,
+  },
+  warningBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    backgroundColor: '#FFEBEE',
+    borderRadius: 12,
+  },
+  warningText: {
+    color: '#D32F2F',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   bookButton: {
     margin: 16,
@@ -518,11 +608,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   conflictHeader: {
-    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
   },
   conflictTitle: {
     color: '#E65100',
     fontWeight: 'bold',
+    marginLeft: 4,
   },
   conflictText: {
     color: '#333',
@@ -535,20 +629,32 @@ const styles = StyleSheet.create({
   },
   conflictTimeContainer: {
     backgroundColor: '#FFE0B2',
-    padding: 10,
+    padding: 12,
     borderRadius: 8,
     marginVertical: 8,
     borderLeftWidth: 3,
     borderLeftColor: '#FF9800',
   },
+  conflictTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    gap: 8,
+  },
   conflictTime: {
     color: '#333',
     fontWeight: '600',
-    marginBottom: 2,
+    marginLeft: 4,
+  },
+  conflictNoteContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 6,
   },
   conflictNote: {
     color: '#666',
     fontStyle: 'italic',
-    marginTop: 4,
+    flex: 1,
   },
 });
