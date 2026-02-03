@@ -12,8 +12,7 @@ interface IBookingModel extends Model<IBooking> {
 
 const bookingSchema = new Schema<IBooking, IBookingModel>({
   userId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
+    type: String, // Changed to String to support Clerk user IDs
     required: true
   },
   roomId: {

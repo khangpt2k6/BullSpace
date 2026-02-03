@@ -5,6 +5,7 @@ let connection: amqp.Connection | null = null;
 let channel: amqp.Channel | null = null;
 
 const QUEUE_NAME = 'booking_requests';
+const EMAIL_QUEUE_NAME = 'email_notifications';
 
 // connect to RabbitMQ
 async function connectRabbitMQ(): Promise<{ connection: amqp.Connection; channel: amqp.Channel }> {
@@ -15,6 +16,11 @@ async function connectRabbitMQ(): Promise<{ connection: amqp.Connection; channel
     // Assert queue exists
     await channel.assertQueue(QUEUE_NAME, {
       durable: true // Queue survives broker restart
+    });
+
+    // Assert email notification queue
+    await channel.assertQueue(EMAIL_QUEUE_NAME, {
+      durable: true
     });
 
     console.log('✅ RabbitMQ connected successfully');
@@ -49,6 +55,21 @@ async function publishBookingRequest(bookingData: BookingQueueMessage): Promise<
   });
 
   console.log(`📤 Published booking request: ${bookingData.roomId}`);
+}
+
+// publish email notification to queue
+async function publishEmailNotification(emailData: any): Promise<void> {
+  if (!channel) {
+    throw new Error('RabbitMQ channel not initialized');
+  }
+
+  const message = JSON.stringify(emailData);
+
+  channel.sendToQueue(EMAIL_QUEUE_NAME, Buffer.from(message), {
+    persistent: true
+  });
+
+  console.log(`📧 Published email notification: ${emailData.type}`);
 }
 
 // consume booking requests from queue
@@ -99,7 +120,9 @@ async function closeRabbitMQ(): Promise<void> {
 export {
   connectRabbitMQ,
   publishBookingRequest,
+  publishEmailNotification,
   consumeBookingRequests,
   closeRabbitMQ,
-  QUEUE_NAME
+  QUEUE_NAME,
+  EMAIL_QUEUE_NAME
 };

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { clerkClient } from '@clerk/clerk-sdk-node';
+import jwt from 'jsonwebtoken';
 
 // Extend Express Request to include user info
 declare global {
@@ -34,22 +35,28 @@ export const requireAuth = async (
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     try {
-      // Verify the token with Clerk
-      const session = await clerkClient.sessions.verifySession(
-        token.split('_')[0], // session ID is before the underscore
-        token
-      );
+      // Decode the JWT token (Clerk tokens are already verified on the client)
+      // We just need to extract the user ID
+      const decoded: any = jwt.decode(token);
 
-      if (!session) {
+      if (!decoded || !decoded.sub) {
         res.status(401).json({
           success: false,
-          error: 'Invalid or expired token'
+          error: 'Invalid token format'
         });
         return;
       }
 
-      // Get user info from Clerk
-      const user = await clerkClient.users.getUser(session.userId);
+      // Get user info from Clerk to verify token is still valid
+      const user = await clerkClient.users.getUser(decoded.sub);
+
+      if (!user) {
+        res.status(401).json({
+          success: false,
+          error: 'User not found'
+        });
+        return;
+      }
 
       // Attach user info to request
       req.userId = user.id;

@@ -2,7 +2,7 @@ import express, { Request, Response, Router } from 'express';
 import Booking from '../../shared/models/Booking';
 import Room from '../../shared/models/Room';
 import User from '../../shared/models/User';
-import { publishBookingRequest } from '../../shared/utils/rabbitmq';
+import { publishBookingRequest, publishEmailNotification } from '../../shared/utils/rabbitmq';
 import { RoomCache } from '../../shared/utils/redis';
 import { CreateBookingRequest, BookingFilterQuery } from '../../shared/types';
 import { requireAuth } from '../middleware/auth';
@@ -84,6 +84,18 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
       startTime: startTime,
       endTime: endTime,
       timeSlot: `${startTime}_${endTime}`
+    });
+
+    // Send booking created notification via RabbitMQ to notification service
+    await publishEmailNotification({
+      bookingId: booking._id.toString(),
+      userId,
+      userEmail: req.userEmail,
+      roomId,
+      startTime: startTime,
+      endTime: endTime,
+      type: 'booking_created',
+      message: `Your booking for room ${roomId} has been created and is pending confirmation. Please confirm within 10 minutes or it will be automatically cancelled.`
     });
 
     res.status(202).json({
@@ -208,9 +220,21 @@ router.post('/:id/confirm', requireAuth, async (req: Request, res: Response): Pr
     const timeSlot = `${booking.startTime.toISOString()}_${booking.endTime.toISOString()}`;
     await RoomCache.confirmBooking(booking.roomId, timeSlot, booking.userId.toString());
 
+    // Send confirmation email notification via RabbitMQ to notification service
+    await publishEmailNotification({
+      bookingId: booking._id.toString(),
+      userId: booking.userId,
+      userEmail: req.userEmail,
+      roomId: booking.roomId,
+      startTime: booking.startTime.toISOString(),
+      endTime: booking.endTime.toISOString(),
+      type: 'booking_confirmed',
+      message: `🎉 Your booking for room ${booking.roomId} has been confirmed! Time: ${booking.startTime.toLocaleString()} - ${booking.endTime.toLocaleString()}`
+    });
+
     res.json({
       success: true,
-      message: 'Booking confirmed successfully',
+      message: 'Booking confirmed successfully. A confirmation email has been sent.',
       booking
     });
   } catch (error) {

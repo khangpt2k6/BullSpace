@@ -3,7 +3,9 @@ import express, { Express, Request, Response } from 'express';
 import http from 'http';
 import { Server, Socket } from 'socket.io';
 import Redis from 'ioredis';
+import * as amqp from 'amqplib';
 import { RoomUpdateEvent } from '../shared/types';
+import { sendBookingEmail } from './services/emailService';
 
 const app: Express = express();
 const server = http.createServer(app);
@@ -64,17 +66,18 @@ io.on('connection', (socket: Socket) => {
 });
 
 // Subscribe to Redis Pub/Sub channel for room updates
-redisSubscriber.subscribe('room:updates', (err: Error | null, count: number) => {
+redisSubscriber.subscribe('room:updates', (err: Error | null | undefined) => {
   if (err) {
     console.error('❌ Failed to subscribe to Redis channel:', err.message);
     return;
   }
-  console.log(`✅ Subscribed to ${count} Redis channel(s)`);
+  console.log(`✅ Subscribed to Redis channels`);
 });
 
 // Handle Redis Pub/Sub messages
-redisSubscriber.on('message', (channel: string, message: string) => {
+redisSubscriber.on('message', (_channel: string, message: string) => {
   try {
+    // Handle room updates
     const data: RoomUpdateEvent = JSON.parse(message);
     console.log(`📨 Received update:`, data);
 
@@ -105,13 +108,61 @@ redisSubscriber.on('message', (channel: string, message: string) => {
 });
 
 // Health check endpoint
-app.get('/health', (req: Request, res: Response) => {
+app.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'healthy',
     connectedClients,
     timestamp: new Date().toISOString()
   });
 });
+
+// Setup RabbitMQ consumer for email notifications
+async function setupEmailNotifications() {
+  try {
+    console.log('📧 Setting up email notification consumer...');
+    const connection = await amqp.connect(process.env.RABBITMQ_URL as string);
+    const channel = await connection.createChannel();
+
+    const NOTIFICATION_QUEUE = 'email_notifications';
+    await channel.assertQueue(NOTIFICATION_QUEUE, { durable: true });
+    
+    console.log(`✅ Listening for email notifications on queue: ${NOTIFICATION_QUEUE}`);
+
+    channel.consume(NOTIFICATION_QUEUE, async (msg) => {
+      if (!msg) return;
+
+      try {
+        const notification = JSON.parse(msg.content.toString());
+        
+        // Send email using Resend
+        await sendBookingEmail(notification);
+
+        // Also emit to Socket.io for real-time notification in UI
+        io.emit('notification', {
+          type: notification.type,
+          message: notification.message,
+          bookingId: notification.bookingId,
+          timestamp: new Date().toISOString()
+        });
+
+        channel.ack(msg);
+      } catch (error) {
+        console.error('❌ Error processing email notification:', error);
+        channel.nack(msg);
+      }
+    });
+
+    connection.on('error', (err) => {
+      console.error('❌ RabbitMQ connection error:', err);
+    });
+
+  } catch (error) {
+    console.error('❌ Failed to setup email notifications:', error);
+  }
+}
+
+// Start email notification consumer
+setupEmailNotifications();
 
 // Start server
 server.listen(PORT, () => {
