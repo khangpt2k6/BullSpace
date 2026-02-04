@@ -8,6 +8,7 @@ import { ClerkProvider } from '@clerk/clerk-expo';
 import * as SecureStore from 'expo-secure-store';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { SocketProvider } from './src/contexts/SocketContext';
+import { ToastProvider } from './src/contexts/ToastContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { theme } from './src/theme/theme';
 import { CLERK_PUBLISHABLE_KEY } from './src/config/env';
@@ -49,10 +50,12 @@ export default function App() {
           <PaperProvider theme={theme}>
             <AuthProvider>
               <SocketProvider>
-                <NavigationContainer>
-                  <AppNavigator />
-                  <StatusBar style="auto" />
-                </NavigationContainer>
+                <ToastProvider>
+                  <NavigationContainer>
+                    <AppNavigator />
+                    <StatusBar style="auto" />
+                  </NavigationContainer>
+                </ToastProvider>
               </SocketProvider>
             </AuthProvider>
           </PaperProvider>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { Text, Card, Button, ActivityIndicator, Divider, Surface } from 'react-native-paper';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -8,6 +8,7 @@ import { HomeStackParamList } from '../../types/navigation';
 import { useRoom } from '../../hooks/api/useRooms';
 import { useCreateBooking } from '../../hooks/api/useBookings';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { USF_GREEN } from '../../theme/colors';
 import { format } from 'date-fns';
 
@@ -18,6 +19,7 @@ export default function BookingConfirmScreen() {
   const route = useRoute<BookingConfirmRouteProp>();
   const navigation = useNavigation<BookingConfirmNavigationProp>();
   const { user } = useAuth();
+  const toast = useToast();
   const { roomId, startTime, endTime } = route.params;
 
   const { data: roomData, isLoading: roomLoading } = useRoom(roomId);
@@ -25,7 +27,7 @@ export default function BookingConfirmScreen() {
 
   const handleConfirm = async () => {
     if (!user) {
-      Alert.alert('Error', 'You must be logged in to book a room');
+      toast.showError('You must be logged in to book a room');
       return;
     }
 
@@ -36,23 +38,12 @@ export default function BookingConfirmScreen() {
         endTime,
       });
 
-      Alert.alert(
-        'Booking Created!',
-        'Your booking has been created successfully! Please confirm it within 10 minutes to secure your room.',
-        [
-          {
-            text: 'View My Bookings',
-            onPress: () => {
-              navigation.getParent()?.navigate('BookingsTab');
-            },
-          },
-          {
-            text: 'Browse More Rooms',
-            style: 'cancel',
-            onPress: () => navigation.navigate('Home'),
-          },
-        ]
-      );
+      toast.showSuccess('Booking created! Please confirm within 10 minutes to secure your room.');
+
+      // Navigate to bookings after a short delay
+      setTimeout(() => {
+        navigation.getParent()?.navigate('BookingsTab');
+      }, 1500);
     } catch (error: any) {
       const isConflict = error.status === 409 ||
                         error.response?.status === 409 ||
@@ -62,26 +53,14 @@ export default function BookingConfirmScreen() {
         const start = new Date(startTime);
         const end = new Date(endTime);
         const bookingTime = `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`;
-        Alert.alert(
-          'Time Slot Occupied',
-          `This room is already booked for ${bookingTime}. Someone else has reserved this time slot.\n\nPlease choose a different time or browse other available rooms.`,
-          [
-            {
-              text: 'Choose Different Time',
-              onPress: () => navigation.goBack(),
-            },
-            {
-              text: 'Browse Other Rooms',
-              onPress: () => navigation.navigate('Home'),
-            },
-          ]
-        );
+        toast.showError(`Time slot occupied! Room is already booked for ${bookingTime}`);
+
+        // Navigate back after a short delay
+        setTimeout(() => {
+          navigation.goBack();
+        }, 2000);
       } else {
-        Alert.alert(
-          'Booking Failed',
-          error.message || 'Failed to create booking. Please try again.',
-          [{ text: 'OK' }]
-        );
+        toast.showError(error.message || 'Failed to create booking. Please try again.');
       }
     }
   };

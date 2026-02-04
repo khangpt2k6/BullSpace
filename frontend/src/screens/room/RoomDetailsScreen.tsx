@@ -22,6 +22,7 @@ import { HomeStackParamList } from '../../types/navigation';
 import { useRoom } from '../../hooks/api/useRooms';
 import { useBookings } from '../../hooks/api/useBookings';
 import { useSocket } from '../../contexts/SocketContext';
+import { useToast } from '../../contexts/ToastContext';
 import { USF_GREEN } from '../../theme/colors';
 import { format } from 'date-fns';
 
@@ -32,6 +33,7 @@ export default function RoomDetailsScreen() {
   const route = useRoute<RoomDetailsRouteProp>();
   const navigation = useNavigation<RoomDetailsNavigationProp>();
   const socket = useSocket();
+  const toast = useToast();
   const { roomId } = route.params;
 
   const { data, isLoading, refetch } = useRoom(roomId);
@@ -95,11 +97,11 @@ export default function RoomDetailsScreen() {
     // Validate times
     const now = new Date();
     if (startDate < now) {
-      Alert.alert('Invalid Time', 'Start time cannot be in the past');
+      toast.showError("Oops! Can't book in the past time");
       return;
     }
     if (endDate <= startDate) {
-      Alert.alert('Invalid Time', 'End time must be after start time');
+      toast.showError('End time must be after start time');
       return;
     }
 
@@ -107,7 +109,7 @@ export default function RoomDetailsScreen() {
     const durationMs = endDate.getTime() - startDate.getTime();
     const durationHours = durationMs / (1000 * 60 * 60);
     if (durationHours > 3) {
-      Alert.alert('Booking Too Long', 'Maximum booking duration is 3 hours');
+      toast.showWarning('Maximum booking duration is 3 hours');
       return;
     }
 
