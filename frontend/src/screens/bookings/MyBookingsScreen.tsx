@@ -1,12 +1,25 @@
 import React, { useState } from 'react';
 import { View, FlatList, StyleSheet, RefreshControl, Alert } from 'react-native';
-import { Card, Text, Chip, ActivityIndicator, SegmentedButtons, IconButton } from 'react-native-paper';
+import { Card, Text, Chip, ActivityIndicator, SegmentedButtons, IconButton, Surface } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { BookingsStackParamList } from '../../types/navigation';
 import { useBookings, useDeleteBooking } from '../../hooks/api/useBookings';
 import { Booking } from '../../types/models';
-import { USF_GREEN, STATUS_PENDING, STATUS_CONFIRMED, STATUS_CANCELLED, STATUS_EXPIRED } from '../../theme/colors';
+import {
+  USF_GREEN,
+  USF_GREEN_LIGHT,
+  USF_GREEN_DARK,
+  USF_GREEN_LIGHTEST,
+  USF_GOLD,
+  USF_GOLD_LIGHT,
+  USF_GOLD_LIGHTEST,
+  STATUS_PENDING,
+  STATUS_CONFIRMED,
+  STATUS_CANCELLED,
+  STATUS_EXPIRED
+} from '../../theme/colors';
 import { format } from 'date-fns';
 
 type MyBookingsScreenNavigationProp = StackNavigationProp<BookingsStackParamList, 'MyBookings'>;
@@ -58,9 +71,9 @@ export default function MyBookingsScreen() {
 
     try {
       await deleteBooking.mutateAsync(bookingId);
-      Alert.alert('✅ Deleted', 'Booking deleted successfully');
+      Alert.alert('Deleted', 'Booking deleted successfully');
     } catch (error: any) {
-      Alert.alert('❌ Error', error.message || 'Failed to delete booking');
+      Alert.alert('Error', error.message || 'Failed to delete booking');
     }
   };
 
@@ -92,9 +105,12 @@ export default function MyBookingsScreen() {
         <Card.Content>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
-              <Text variant="titleLarge" style={styles.roomId}>
-                {roomId}
-              </Text>
+              <View style={styles.roomIdContainer}>
+                <MaterialCommunityIcons name="door" size={22} color={USF_GREEN} />
+                <Text variant="titleLarge" style={styles.roomId}>
+                  {roomId}
+                </Text>
+              </View>
             </View>
             <View style={styles.cardHeaderRight}>
               <Chip
@@ -103,14 +119,13 @@ export default function MyBookingsScreen() {
                   styles.statusChip,
                   { backgroundColor: getStatusColor(displayStatus) }
                 ]}
-                textStyle={{ color: '#FFFFFF' }}
+                textStyle={{ color: '#FFFFFF', fontSize: 11, fontWeight: '600' }}
               >
                 {displayStatus}
               </Chip>
               {isPastBooking && activeTab === 'past' && (
                 <IconButton
-                  icon="delete"
-                  iconColor="#F44336"
+                  icon={() => <MaterialCommunityIcons name="delete" size={20} color="#F44336" />}
                   size={20}
                   onPress={(e) => {
                     e.stopPropagation();
@@ -122,34 +137,45 @@ export default function MyBookingsScreen() {
             </View>
           </View>
 
-          <View style={styles.dateTimeSection}>
-            <Text variant="bodyLarge" style={styles.date}>
-              {format(startDate, 'EEEE, MMM d, yyyy')}
-            </Text>
-            <Text variant="bodyMedium" style={styles.time}>
-              {format(startDate, 'h:mm a')} - {format(endDate, 'h:mm a')}
-            </Text>
-          </View>
-
-          {item.status === 'PENDING' && !hasEnded && (
-            <View style={styles.warningBox}>
-              <Text variant="bodySmall" style={styles.warningText}>
-                ⏱️ Confirm within 10 minutes or booking will expire
+          <Surface style={styles.dateTimeSection} elevation={0}>
+            <View style={styles.dateRow}>
+              <MaterialCommunityIcons name="calendar" size={16} color={USF_GREEN_LIGHT} />
+              <Text variant="bodyLarge" style={styles.date}>
+                {format(startDate, 'EEEE, MMM d, yyyy')}
               </Text>
             </View>
+            <View style={styles.timeRow}>
+              <MaterialCommunityIcons name="clock-outline" size={16} color={USF_GREEN_LIGHT} />
+              <Text variant="bodyMedium" style={styles.time}>
+                {format(startDate, 'h:mm a')} - {format(endDate, 'h:mm a')}
+              </Text>
+            </View>
+          </Surface>
+
+          {item.status === 'PENDING' && !hasEnded && (
+            <Surface style={styles.warningBox} elevation={0}>
+              <MaterialCommunityIcons name="clock-alert" size={18} color="#E65100" />
+              <Text variant="bodySmall" style={styles.warningText}>
+                Confirm within 10 minutes or booking will expire
+              </Text>
+            </Surface>
           )}
 
           {displayStatus === 'EXPIRED' && (
-            <View style={[styles.warningBox, { backgroundColor: '#FFEBEE' }]}>
+            <Surface style={[styles.warningBox, styles.errorBox]} elevation={0}>
+              <MaterialCommunityIcons name="calendar-remove" size={18} color="#C62828" />
               <Text variant="bodySmall" style={[styles.warningText, { color: '#C62828' }]}>
-                ⏰ This booking has ended
+                This booking has ended
               </Text>
-            </View>
+            </Surface>
           )}
 
-          <Text variant="bodySmall" style={styles.createdAt}>
-            Booked on {format(new Date(item.createdAt), 'MMM d, h:mm a')}
-          </Text>
+          <View style={styles.createdAtRow}>
+            <MaterialCommunityIcons name="clock-plus-outline" size={14} color="#999" />
+            <Text variant="bodySmall" style={styles.createdAt}>
+              Booked on {format(new Date(item.createdAt), 'MMM d, h:mm a')}
+            </Text>
+          </View>
         </Card.Content>
       </Card>
     );
@@ -186,10 +212,20 @@ export default function MyBookingsScreen() {
           }
           ListEmptyComponent={
             <View style={styles.centered}>
-              <Text variant="bodyLarge" style={styles.emptyText}>
+              <View style={styles.emptyIconContainer}>
+                <MaterialCommunityIcons
+                  name={activeTab === 'active' ? 'calendar-blank' : 'calendar-check'}
+                  size={64}
+                  color={USF_GREEN_LIGHT}
+                />
+              </View>
+              <Text variant="headlineSmall" style={styles.emptyTitle}>
+                {activeTab === 'active' ? 'No Active Bookings' : 'No Past Bookings'}
+              </Text>
+              <Text variant="bodyMedium" style={styles.emptyText}>
                 {activeTab === 'active'
-                  ? 'No active bookings'
-                  : 'No past bookings'}
+                  ? 'Book a room to get started'
+                  : 'Your booking history will appear here'}
               </Text>
             </View>
           }
@@ -202,7 +238,7 @@ export default function MyBookingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: USF_GREEN_LIGHTEST,
   },
   segmentedButtons: {
     margin: 16,
@@ -213,7 +249,13 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: 16,
-    elevation: 2,
+    elevation: 4,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    shadowColor: USF_GREEN_DARK,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -227,49 +269,109 @@ const styles = StyleSheet.create({
   cardHeaderRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
+  },
+  roomIdContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   roomId: {
     fontWeight: 'bold',
-    color: USF_GREEN,
+    color: USF_GREEN_DARK,
+    fontSize: 18,
   },
   statusChip: {
     height: 28,
+    paddingHorizontal: 4,
   },
   deleteButton: {
     margin: 0,
   },
   dateTimeSection: {
     marginBottom: 12,
+    backgroundColor: USF_GREEN_LIGHTEST,
+    padding: 10,
+    borderRadius: 10,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: USF_GOLD_LIGHT,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   date: {
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    color: USF_GREEN_DARK,
+    flex: 1,
   },
   time: {
-    color: '#666',
+    color: USF_GREEN,
+    flex: 1,
   },
   warningBox: {
     backgroundColor: '#FFF3E0',
-    padding: 8,
-    borderRadius: 8,
+    padding: 10,
+    borderRadius: 10,
     marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#E65100',
+  },
+  errorBox: {
+    backgroundColor: '#FFEBEE',
+    borderLeftColor: '#C62828',
   },
   warningText: {
     color: '#E65100',
+    flex: 1,
+  },
+  createdAtRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
   },
   createdAt: {
     color: '#999',
-    marginTop: 4,
+    flex: 1,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingTop: 60,
+    paddingHorizontal: 32,
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: USF_GREEN_LIGHTEST,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: USF_GOLD_LIGHT,
+  },
+  emptyTitle: {
+    fontWeight: 'bold',
+    color: USF_GREEN_DARK,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   emptyText: {
-    color: '#999',
+    color: USF_GREEN,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });

@@ -1,12 +1,25 @@
 import React from 'react';
 import { View, ScrollView, StyleSheet, Alert } from 'react-native';
-import { Text, Card, Button, ActivityIndicator, Chip, Divider } from 'react-native-paper';
+import { Text, Card, Button, ActivityIndicator, Chip, Divider, Surface } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { BookingsStackParamList } from '../../types/navigation';
 import { useBooking, useConfirmBooking, useCancelBooking, useDeleteBooking } from '../../hooks/api/useBookings';
 import { useRoom } from '../../hooks/api/useRooms';
-import { USF_GREEN, STATUS_PENDING, STATUS_CONFIRMED, STATUS_CANCELLED, STATUS_EXPIRED } from '../../theme/colors';
+import {
+  USF_GREEN,
+  USF_GREEN_LIGHT,
+  USF_GREEN_DARK,
+  USF_GREEN_LIGHTEST,
+  USF_GOLD,
+  USF_GOLD_LIGHT,
+  USF_GOLD_LIGHTEST,
+  STATUS_PENDING,
+  STATUS_CONFIRMED,
+  STATUS_CANCELLED,
+  STATUS_EXPIRED
+} from '../../theme/colors';
 import { format } from 'date-fns';
 
 type BookingDetailsRouteProp = RouteProp<BookingsStackParamList, 'BookingDetails'>;
@@ -52,7 +65,7 @@ export default function BookingDetailsScreen() {
     try {
       await confirmBooking.mutateAsync(bookingId);
       Alert.alert(
-        '✅ Booking Confirmed!',
+        'Booking Confirmed!',
         'Your room has been successfully reserved.',
         [
           {
@@ -81,12 +94,12 @@ export default function BookingDetailsScreen() {
     try {
       await cancelBooking.mutateAsync(bookingId);
       console.log('Booking cancelled successfully!');
-      Alert.alert('✅ Cancelled', 'Booking cancelled successfully', [
+      Alert.alert('Cancelled', 'Booking cancelled successfully', [
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
     } catch (error: any) {
       console.error('Error cancelling booking:', error);
-      Alert.alert('❌ Error', error.message || 'Failed to cancel booking');
+      Alert.alert('Error', error.message || 'Failed to cancel booking');
     }
   };
 
@@ -99,11 +112,11 @@ export default function BookingDetailsScreen() {
 
     try {
       await deleteBooking.mutateAsync(bookingId);
-      Alert.alert('✅ Deleted', 'Booking deleted successfully', [
+      Alert.alert('Deleted', 'Booking deleted successfully', [
         { text: 'OK', onPress: () => navigation.navigate('MyBookings') }
       ]);
     } catch (error: any) {
-      Alert.alert('❌ Error', error.message || 'Failed to delete booking');
+      Alert.alert('Error', error.message || 'Failed to delete booking');
     }
   };
 
@@ -164,66 +177,111 @@ export default function BookingDetailsScreen() {
           <Divider style={styles.divider} />
 
           <View style={styles.section}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>Room</Text>
-            <Text variant="bodyLarge" style={styles.roomId}>{roomId}</Text>
-            {roomData?.room && (
-              <>
-                <Text variant="bodyMedium" style={styles.detail}>
-                  {roomData.room.building} • Floor {roomData.room.floor}
-                </Text>
-                <Text variant="bodyMedium" style={styles.detail}>
-                  {roomData.room.type} • {roomData.room.capacity}
-                </Text>
-              </>
-            )}
+            <View style={styles.sectionHeader}>
+              <MaterialCommunityIcons name="door" size={20} color={USF_GREEN} />
+              <Text variant="titleMedium" style={styles.sectionTitle}>Room</Text>
+            </View>
+            <Surface style={styles.infoCard} elevation={0}>
+              <Text variant="bodyLarge" style={styles.roomId}>{roomId}</Text>
+              {roomData?.room && (
+                <>
+                  <View style={styles.infoRow}>
+                    <MaterialCommunityIcons name="office-building" size={16} color={USF_GREEN_LIGHT} />
+                    <Text variant="bodyMedium" style={styles.detail}>
+                      {roomData.room.building} • Floor {roomData.room.floor}
+                    </Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <MaterialCommunityIcons name="shape" size={16} color={USF_GREEN_LIGHT} />
+                    <Text variant="bodyMedium" style={styles.detail}>
+                      {roomData.room.type}
+                    </Text>
+                    <MaterialCommunityIcons name="account-group" size={16} color={USF_GREEN_LIGHT} style={{ marginLeft: 12 }} />
+                    <Text variant="bodyMedium" style={styles.detail}>
+                      Capacity: {roomData.room.capacity}
+                    </Text>
+                  </View>
+                </>
+              )}
+            </Surface>
           </View>
 
           <Divider style={styles.divider} />
 
           <View style={styles.section}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>Time</Text>
-            <Text variant="bodyLarge">{format(startDate, 'EEEE, MMM d, yyyy')}</Text>
-            <Text variant="bodyMedium" style={styles.detail}>
-              {format(startDate, 'h:mm a')} - {format(endDate, 'h:mm a')}
-            </Text>
-            <Text variant="bodySmall" style={styles.duration}>
-              Duration: {duration} minutes
-            </Text>
+            <View style={styles.sectionHeader}>
+              <MaterialCommunityIcons name="calendar-clock" size={20} color={USF_GREEN} />
+              <Text variant="titleMedium" style={styles.sectionTitle}>Time</Text>
+            </View>
+            <Surface style={styles.infoCard} elevation={0}>
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="calendar" size={16} color={USF_GREEN_LIGHT} />
+                <Text variant="bodyLarge">{format(startDate, 'EEEE, MMM d, yyyy')}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="clock-outline" size={16} color={USF_GREEN_LIGHT} />
+                <Text variant="bodyMedium" style={styles.detail}>
+                  {format(startDate, 'h:mm a')} - {format(endDate, 'h:mm a')}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="timer-outline" size={16} color={USF_GREEN_LIGHT} />
+                <Text variant="bodySmall" style={styles.duration}>
+                  Duration: {duration} minutes
+                </Text>
+              </View>
+            </Surface>
           </View>
 
           <Divider style={styles.divider} />
 
           <View style={styles.section}>
-            <Text variant="titleMedium" style={styles.sectionTitle}>Details</Text>
-            <Text variant="bodyMedium" style={styles.detail}>
-              Created: {format(new Date(booking.createdAt), 'MMM d, yyyy h:mm a')}
-            </Text>
-            {booking.confirmedAt && (
-              <Text variant="bodyMedium" style={styles.detail}>
-                Confirmed: {format(new Date(booking.confirmedAt), 'MMM d, yyyy h:mm a')}
-              </Text>
-            )}
-            {booking.cancelledAt && (
-              <Text variant="bodyMedium" style={styles.detail}>
-                Cancelled: {format(new Date(booking.cancelledAt), 'MMM d, yyyy h:mm a')}
-              </Text>
-            )}
+            <View style={styles.sectionHeader}>
+              <MaterialCommunityIcons name="information" size={20} color={USF_GREEN} />
+              <Text variant="titleMedium" style={styles.sectionTitle}>Details</Text>
+            </View>
+            <Surface style={styles.infoCard} elevation={0}>
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="clock-plus-outline" size={16} color={USF_GREEN_LIGHT} />
+                <Text variant="bodyMedium" style={styles.detail}>
+                  Created: {format(new Date(booking.createdAt), 'MMM d, yyyy h:mm a')}
+                </Text>
+              </View>
+              {booking.confirmedAt && (
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="check-circle-outline" size={16} color={STATUS_CONFIRMED} />
+                  <Text variant="bodyMedium" style={styles.detail}>
+                    Confirmed: {format(new Date(booking.confirmedAt), 'MMM d, yyyy h:mm a')}
+                  </Text>
+                </View>
+              )}
+              {booking.cancelledAt && (
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="close-circle-outline" size={16} color={STATUS_CANCELLED} />
+                  <Text variant="bodyMedium" style={styles.detail}>
+                    Cancelled: {format(new Date(booking.cancelledAt), 'MMM d, yyyy h:mm a')}
+                  </Text>
+                </View>
+              )}
+            </Surface>
           </View>
 
           {booking.status === 'PENDING' && !hasEnded && (
-            <View style={styles.warningBox}>
+            <Surface style={styles.warningBox} elevation={0}>
+              <MaterialCommunityIcons name="clock-alert" size={20} color="#E65100" />
               <Text variant="bodyMedium" style={styles.warningText}>
-                ⏱️ This booking will expire in 10 minutes unless confirmed
+                This booking will expire in 10 minutes unless confirmed
               </Text>
-            </View>
+            </Surface>
           )}
 
           {displayStatus === 'EXPIRED' && (
-            <View style={[styles.warningBox, { backgroundColor: '#FFEBEE' }]}>
+            <Surface style={[styles.warningBox, styles.errorBox]} elevation={0}>
+              <MaterialCommunityIcons name="calendar-remove" size={20} color="#C62828" />
               <Text variant="bodyMedium" style={[styles.warningText, { color: '#C62828' }]}>
-                ⏰ This booking has ended
+                This booking has ended
               </Text>
-            </View>
+            </Surface>
           )}
         </Card.Content>
       </Card>
@@ -237,6 +295,9 @@ export default function BookingDetailsScreen() {
             disabled={confirmBooking.isPending}
             style={styles.confirmButton}
             contentStyle={styles.buttonContent}
+            icon={({ size, color }) => (
+              <MaterialCommunityIcons name="check-circle" size={size} color={color} />
+            )}
           >
             Confirm Booking
           </Button>
@@ -250,6 +311,9 @@ export default function BookingDetailsScreen() {
             disabled={cancelBooking.isPending}
             style={styles.cancelButton}
             textColor="#F44336"
+            icon={({ size }) => (
+              <MaterialCommunityIcons name="close-circle" size={size} color="#F44336" />
+            )}
           >
             Cancel Booking
           </Button>
@@ -263,7 +327,9 @@ export default function BookingDetailsScreen() {
             disabled={deleteBooking.isPending}
             style={styles.deleteButton}
             textColor="#D32F2F"
-            icon="delete"
+            icon={({ size }) => (
+              <MaterialCommunityIcons name="delete" size={size} color="#D32F2F" />
+            )}
           >
             Delete Booking
           </Button>
@@ -277,13 +343,13 @@ export default function BookingDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: USF_GREEN_LIGHTEST,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100, // Extra padding to ensure button isn't covered by bottom nav
+    paddingBottom: 100,
   },
   centered: {
     flex: 1,
@@ -292,60 +358,101 @@ const styles = StyleSheet.create({
   },
   card: {
     margin: 16,
-    elevation: 2,
+    elevation: 6,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    shadowColor: USF_GREEN_DARK,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   bookingId: {
     fontWeight: 'bold',
-    color: USF_GREEN,
+    color: USF_GREEN_DARK,
+    fontSize: 18,
   },
   statusChip: {
     height: 32,
+    paddingHorizontal: 4,
   },
   divider: {
     marginVertical: 16,
+    backgroundColor: USF_GOLD_LIGHT,
   },
   section: {
-    marginBottom: 8,
+    marginBottom: 12,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#333',
+    fontWeight: '700',
+    color: USF_GREEN_DARK,
+    fontSize: 16,
+  },
+  infoCard: {
+    backgroundColor: USF_GREEN_LIGHTEST,
+    padding: 12,
+    borderRadius: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: USF_GOLD_LIGHT,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   roomId: {
     fontWeight: 'bold',
-    color: USF_GREEN,
-    marginBottom: 4,
+    color: USF_GREEN_DARK,
+    marginBottom: 8,
+    fontSize: 16,
   },
   detail: {
-    color: '#666',
-    marginTop: 4,
+    color: USF_GREEN,
+    flex: 1,
   },
   duration: {
-    color: '#999',
-    marginTop: 8,
+    color: USF_GREEN,
+    flex: 1,
   },
   warningBox: {
     backgroundColor: '#FFF3E0',
-    padding: 12,
-    borderRadius: 8,
+    padding: 14,
+    borderRadius: 12,
     marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#E65100',
+  },
+  errorBox: {
+    backgroundColor: '#FFEBEE',
+    borderLeftColor: '#C62828',
   },
   warningText: {
     color: '#E65100',
+    flex: 1,
   },
   buttonContainer: {
-    paddingBottom: 120, // Extra space for bottom navigation
+    paddingBottom: 120,
   },
   confirmButton: {
     margin: 16,
     marginTop: 0,
+    backgroundColor: USF_GREEN,
+    borderRadius: 12,
   },
   buttonContent: {
     height: 50,
@@ -354,10 +461,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 16,
     borderColor: '#F44336',
+    borderWidth: 2,
+    borderRadius: 12,
   },
   deleteButton: {
     marginHorizontal: 16,
     marginBottom: 16,
     borderColor: '#D32F2F',
+    borderWidth: 2,
+    borderRadius: 12,
   },
 });
