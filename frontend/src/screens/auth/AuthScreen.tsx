@@ -143,7 +143,7 @@ export default function AuthScreen() {
           console.log('🔄 Setting active session:', createdSessionId);
           await setActive({ session: createdSessionId });
           console.log('✅ Session activated successfully!');
-        } 
+        }
         // If no session but we have a signUp with a session, activate it
         else if (signUp?.createdSessionId) {
           console.log('🔄 Activating signUp session:', signUp.createdSessionId);
@@ -156,9 +156,65 @@ export default function AuthScreen() {
           await setActive({ session: signIn.createdSessionId });
           console.log('✅ SignIn session activated!');
         }
+        // Handle transfer flow: OAuth succeeded but Clerk needs more fields
+        else if (signUp?.status === 'missing_requirements') {
+          console.log('🔄 Handling missing_requirements...');
+          console.log('Missing fields:', signUp.missingFields);
+          console.log('Required fields:', signUp.requiredFields);
+          console.log('Optional fields:', signUp.optionalFields);
+          console.log('Unverified fields:', signUp.unverifiedFields);
+          const externalStatus = signUp.verifications?.externalAccount?.status;
+          const emailStatus = signUp.verifications?.emailAddress?.status;
+          console.log('External account status:', externalStatus);
+          console.log('Email verification status:', emailStatus);
+
+          if (externalStatus === 'transferable') {
+            // User already exists with a different auth method - transfer to sign-in
+            try {
+              const transferResult = await signIn.create({ transfer: true });
+              if (transferResult.createdSessionId) {
+                await setActive({ session: transferResult.createdSessionId });
+                console.log('✅ Transfer sign-in successful!');
+                return;
+              }
+            } catch (transferErr) {
+              console.log('Transfer sign-in failed:', transferErr);
+            }
+          }
+
+          if (externalStatus === 'verified') {
+            try {
+              // Build update payload for missing fields
+              const updateData: Record<string, string> = {};
+
+              // Use email as username if username is missing
+              if (signUp.missingFields?.includes('username')) {
+                updateData.username = signUp.emailAddress || '';
+                console.log('🔄 Setting username to email:', updateData.username);
+              }
+
+              const completeResult = await signUp.update(updateData);
+              console.log('Update result:', completeResult.status, completeResult.createdSessionId);
+              if (completeResult.status === 'complete' && completeResult.createdSessionId) {
+                await setActive({ session: completeResult.createdSessionId });
+                console.log('✅ Sign-up completed after update!');
+                return;
+              }
+            } catch (updateErr: any) {
+              console.log('Sign-up update failed:', updateErr);
+              console.log('Update error details:', JSON.stringify(updateErr.errors || updateErr, null, 2));
+            }
+          }
+
+          console.warn('⚠️ Could not complete OAuth sign-up automatically.', {
+            missingFields: signUp.missingFields,
+            unverifiedFields: signUp.unverifiedFields,
+          });
+          setError(`OAuth sign-up incomplete. Missing: ${(signUp.missingFields || []).join(', ') || 'unknown'}. Unverified: ${(signUp.unverifiedFields || []).join(', ') || 'none'}.`);
+        }
         else {
-          console.warn('⚠️ No session found in OAuth response', { 
-            createdSessionId, 
+          console.warn('⚠️ No session found in OAuth response', {
+            createdSessionId,
             signInSessionId: signIn?.createdSessionId,
             signUpSessionId: signUp?.createdSessionId,
             signInStatus: signIn?.status,
