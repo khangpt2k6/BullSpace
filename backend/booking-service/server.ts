@@ -28,7 +28,7 @@ const init = async (): Promise<void> => {
 };
 
 // CORE FUNCTION: Process booking request
-async function processBooking(bookingData: BookingQueueMessage): Promise<{ success: boolean; message: string; holdExpiresIn?: number }> {
+async function processBooking(bookingData: BookingQueueMessage): Promise<void> {
   const { bookingId, userId, roomId, timeSlot } = bookingData;
 
   console.log(`\n🔄 Processing booking: ${bookingId}`);
@@ -48,10 +48,8 @@ async function processBooking(bookingData: BookingQueueMessage): Promise<{ succe
         status: 'EXPIRED'
       });
 
-      return {
-        success: false,
-        message: 'Room is not available'
-      };
+      console.log(`⚠️  Booking ${bookingId} expired - room not available`);
+      return;
     }
 
     // Step 2: Try to HOLD the room (ATOMIC OPERATION - SETNX)
@@ -66,10 +64,8 @@ async function processBooking(bookingData: BookingQueueMessage): Promise<{ succe
         status: 'EXPIRED'
       });
 
-      return {
-        success: false,
-        message: 'Room was just booked by another user'
-      };
+      console.log(`⚠️  Booking ${bookingId} expired - race condition`);
+      return;
     }
 
     console.log(`✅ Room ${roomId} HELD successfully for user ${userId}`);
@@ -80,11 +76,7 @@ async function processBooking(bookingData: BookingQueueMessage): Promise<{ succe
       status: 'PENDING'
     });
 
-    return {
-      success: true,
-      message: 'Room held successfully',
-      holdExpiresIn: holdTTL
-    };
+    console.log(`✅ Booking ${bookingId} processed successfully`);
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
