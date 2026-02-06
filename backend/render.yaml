@@ -1,0 +1,84 @@
+services:
+  # API Gateway
+  - type: web
+    name: bullroom-api-gateway
+    env: node
+    region: oregon
+    plan: starter
+    buildCommand: cd backend/api-gateway && npm install && npm run build
+    startCommand: cd backend/api-gateway && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: MONGODB_URI
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: RABBITMQ_URL
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+    healthCheckPath: /health
+
+  # Booking Service
+  - type: web
+    name: bullroom-booking-service
+    env: node
+    region: oregon
+    plan: starter
+    buildCommand: cd backend/booking-service && npm install && npm run build
+    startCommand: cd backend/booking-service && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: MONGODB_URI
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: RABBITMQ_URL
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+
+  # Notification Service
+  - type: web
+    name: bullroom-notification-service
+    env: node
+    region: oregon
+    plan: starter
+    buildCommand: cd backend/notification-service && npm install && npm run build
+    startCommand: cd backend/notification-service && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3002
+      - key: MONGODB_URI
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: RABBITMQ_URL
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_PORT
+        value: 587
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+
+  # Redis
+  - type: redis
+    name: bullroom-redis
+    region: oregon
+    plan: starter
+    maxmemoryPolicy: allkeys-lru
