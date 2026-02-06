@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import express from 'express';
 import connectDB from '../shared/config/database';
 import { connectRabbitMQ, consumeBookingRequests } from '../shared/utils/rabbitmq';
 import { RoomCache } from '../shared/utils/redis';
@@ -6,6 +7,18 @@ import Booking from '../shared/models/Booking';
 import { BookingQueueMessage } from '../shared/types';
 
 console.log('🔄 Starting Booking Service...');
+
+// Create minimal HTTP server for health checks (Render requirement)
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+app.get('/health', (_req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    service: 'booking-service',
+    timestamp: new Date().toISOString() 
+  });
+});
 
 // Connect to databases
 const init = async (): Promise<void> => {
@@ -18,6 +31,11 @@ const init = async (): Promise<void> => {
 
     // Start consuming booking requests
     await consumeBookingRequests(processBooking);
+
+    // Start HTTP server for health checks
+    app.listen(PORT, () => {
+      console.log(`✅ Health check server running on port ${PORT}`);
+    });
 
     console.log('✅ Booking Service is ready and listening for requests');
   } catch (error) {

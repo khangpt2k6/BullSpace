@@ -45,6 +45,7 @@ services:
         sync: false
       - key: CLERK_SECRET_KEY
         sync: false
+    healthCheckPath: /health
 
   # Notification Service
   - type: web
